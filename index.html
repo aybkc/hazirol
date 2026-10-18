@@ -339,6 +339,7 @@ const FORBIDDEN = [
   [/kapı\s*(kasası|eşiği)(nın)?\s*(altına|altında)/i, "kapı eşiği altına sığınma (güncel öneri değil)"],
   [/(su basmış|selli|sular altındaki)\s*(yol|alt geçit)[^.]{0,30}(geç|gir)(in|ebilirsiniz)(?![^.]{0,10}me)/i, "selli yoldan geçme"],
   [/bina(nız)?\s*(kesinlikle\s*)?(güvenli|sağlam)(dir)?\b/i, "bina güvenliği hakkında hüküm"],
+  [/(yaşam|hayat)\s*üçgen/i, "'yaşam üçgeni' (AFAD önerisi değil; Çök-Kapan-Tutun önerilir)"],
 ];
 function sanitize(text) {
   const issues = [];
@@ -360,6 +361,8 @@ function buildPrompt(h) {
 GÖREV: Aşağıdaki hane için kişiye özel afet hazırlık planı hazırla.
 
 BAĞLAM: Kullanıcı bu planı evde, afetten ÖNCE okuyacak. Uygulama ayrıca kendi kural motoruyla temel kontrol listesini ve çanta miktarlarını ekliyor; sen bu haneye ÖZGÜ olanı ekle, genel bilgiyi tekrar etme.
+Kural motoru bu hane için ZATEN şunları ekliyor, bunları "oncelikler"de TEKRARLAMA: ${rulePriorities(h).map((p) => p.baslik).join("; ")}.
+Her önceliği bu hanenin bir özelliğine (kişi, kat, bina yılı, dere, orman, il) bağla; "neden" alanında o özelliği an.
 
 ADIM ADIM DÜŞÜN (bu adımları yazma, yalnız sonucu JSON'a dök):
 1. Hanedeki kırılgan bireyleri (yaşlı, bebek, çocuk, engelli, ilaç kullanan, evcil hayvan) listele.
@@ -371,7 +374,7 @@ KISITLAR:
 - Yalnız geçerli JSON döndür, başka metin yazma.
 - Binanın güvenli ya da sağlam olduğunu ASLA söyleme; bina hakkında hüküm verme, yalnız lisanslı kuruluştan inceleme öner.
 - Telefon numarası olarak yalnız 112 yazabilirsin; başka numara, web adresi veya kurum içi hat uydurma.
-- Deprem anında dışarı kaçmayı, balkona çıkmayı, pencereden atlamayı, asansörü, kapı eşiği altına sığınmayı ÖNERME.
+- Deprem anında dışarı kaçmayı, balkona çıkmayı, pencereden atlamayı, asansörü, kapı eşiği altına sığınmayı, 'yaşam üçgeni'ni ÖNERME (AFAD: Çök-Kapan-Tutun).
 - Sele yürüyerek ya da araçla girmeyi ÖNERME.
 - İlaç dozu, tıbbi tedavi önerme; gerekirse "hekiminize danışın" de.
 - Emin olmadığın veya bilmediğin şeyi "belirsizlikler" alanına yaz; istatistik ya da tarih uydurma.
@@ -396,7 +399,7 @@ Hane: ${profileLine(h)}
 Plan (JSON): ${JSON.stringify(plan).slice(0, 12000)}
 
 Kontrol listesi (her biri için düşün, sonra yalnız bulduğun sorunları yaz):
-1. Tehlikeli ya da güncel olmayan bir öneri var mı? (dışarı kaçma, balkon, asansör, kapı eşiği, sele girme, binanın güvenli olduğunu söyleme)
+1. Tehlikeli ya da güncel olmayan bir öneri var mı? (dışarı kaçma, balkon, asansör, kapı eşiği, yaşam üçgeni, sele girme, binanın güvenli olduğunu söyleme)
 2. Hanedeki kırılgan bir birey (yaşlı, bebek, çocuk, engelli, ilaç kullanan, hayvan) unutulmuş mu?
 3. Seçilen bir afet için aşama (önce/sırasında/sonra) boş mu?
 4. Uydurma görünen sayı, tarih, kurum adı ya da 112 dışında telefon var mı?
@@ -497,8 +500,12 @@ function render(h, base, ai, aiErr, val) {
   let pr = base.oncelikler.map((p) => ({ ...p, src: "rule" }));
   if (ai && Array.isArray(ai.oncelikler)) {
     const aiP = ai.oncelikler.filter((p) => p && p.baslik && !bad(p.baslik + " " + p.neden)).slice(0, 7).map((p) => ({ baslik: clean(p.baslik), neden: clean(p.neden || ""), ne_zaman: p.ne_zaman || "bu hafta", afet: p.afet || "genel", src: "ai" }));
-    const seen = new Set(aiP.map((p) => p.baslik.toLowerCase().slice(0, 18)));
-    pr = [...aiP, ...pr.filter((p) => !seen.has(p.baslik.toLowerCase().slice(0, 18)))];
+    // aynı konudaki YZ maddesi kural maddesini tekrar ediyorsa kaynaklı kural maddesi kalır
+    const TOPICS = [/dask|deprem sigorta/i, /il dışı|iletişim kişi|irtibat kişi/i, /sabitle/i, /acil (durum )?çanta/i, /performans|riskli yapı/i, /taşıyacak/i, /su yükselirse/i, /10 m|yanıcı malzeme/i];
+    const topic = (t) => TOPICS.findIndex((re) => re.test(t));
+    const ruleTopics = new Set(pr.map((p) => topic(p.baslik)).filter((i) => i >= 0));
+    const aiNew = aiP.filter((p) => !ruleTopics.has(topic(p.baslik)));
+    pr = [...aiNew, ...pr];
     ai.oncelikler.filter((p) => p && bad(p.baslik + " " + p.neden)).forEach((p) => issues.push("tehlikeli öneri gizlendi: " + p.baslik));
   }
   const order = { "bugün": 0, "bu hafta": 1, "bu ay": 2 };

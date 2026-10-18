@@ -7,9 +7,9 @@ HazırOl makes **two model calls** per plan, then runs a deterministic sanitiser
 Techniques, in prompt order:
 
 1. **Role & goal** — first line sets a calm, AFAD-aware advisor persona; `GÖREV` states the task.
-2. **Context** — `BAĞLAM` says the plan is read *before* a disaster and that the rule engine already covers generic items, so the model should add only what is specific to this household. This reduces repetition and hallucinated generic content.
+2. **Context** — `BAĞLAM` says the plan is read *before* a disaster, then lists the exact items the rule engine has already added for this household and asks the model not to repeat them and to tie every priority to a concrete feature of the home. This keeps the AI output specific instead of generic.
 3. **Hidden chain-of-thought** — `ADIM ADIM DÜŞÜN (bu adımları yazma …)`: four reasoning steps (vulnerable people → risk factors × hazards → rank 5–7 actions → adapt phases). The model reasons but only returns JSON, so the UI stays clean.
-4. **Negative constraints** — `KISITLAR`: no building-safety verdicts, only 112 as a phone number, no outdated or dangerous advice (running outside, balconies, elevators, doorframes, entering flood water), no medical dosing, put uncertainty in `belirsizlikler` instead of inventing statistics.
+4. **Negative constraints** — `KISITLAR`: no building-safety verdicts, only 112 as a phone number, no outdated or dangerous advice (running outside, balconies, elevators, doorframes, the "triangle of life", entering flood water), no medical dosing, put uncertainty in `belirsizlikler` instead of inventing statistics.
 5. **Schema-first output** — `ÇIKTI ŞEMASI` gives the exact JSON shape; the Gemini call also sets `responseMimeType: application/json`.
 6. **One-shot example** — a complete Hatay household (`ÖRNEK GİRDİ` → `ÖRNEK ÇIKTI`) shows tone, length and how vulnerable members are handled.
 7. **Input last** — `ŞİMDİ BU HANE:` the actual household, serialised as one line.
@@ -22,6 +22,8 @@ Sen Türkiye'de afet hazırlığı konusunda AFAD rehberlerini bilen, sakin ve n
 GÖREV: Aşağıdaki hane için kişiye özel afet hazırlık planı hazırla.
 
 BAĞLAM: Kullanıcı bu planı evde, afetten ÖNCE okuyacak. Uygulama ayrıca kendi kural motoruyla temel kontrol listesini ve çanta miktarlarını ekliyor; sen bu haneye ÖZGÜ olanı ekle, genel bilgiyi tekrar etme.
+Kural motoru bu hane için ZATEN şunları ekliyor, bunları "oncelikler"de TEKRARLAMA: Binanız için deprem performans (riskli yapı) analizi isteyin; DASK poliçesi yaptırın; Devrilebilecek eşyaları duvara sabitleyin; Su yükselirse çıkacağınız üst katı ve yolu belirleyin; Hareket kısıtlı / yaşlı birey için 'kim, kimi taşıyacak' planı; Acil durum çantasını hazırlayın; İl dışında yaşayan bir 'iletişim kişisi' belirleyin.
+Her önceliği bu hanenin bir özelliğine (kişi, kat, bina yılı, dere, orman, il) bağla; "neden" alanında o özelliği an.
 
 ADIM ADIM DÜŞÜN (bu adımları yazma, yalnız sonucu JSON'a dök):
 1. Hanedeki kırılgan bireyleri (yaşlı, bebek, çocuk, engelli, ilaç kullanan, evcil hayvan) listele.
@@ -33,7 +35,7 @@ KISITLAR:
 - Yalnız geçerli JSON döndür, başka metin yazma.
 - Binanın güvenli ya da sağlam olduğunu ASLA söyleme; bina hakkında hüküm verme, yalnız lisanslı kuruluştan inceleme öner.
 - Telefon numarası olarak yalnız 112 yazabilirsin; başka numara, web adresi veya kurum içi hat uydurma.
-- Deprem anında dışarı kaçmayı, balkona çıkmayı, pencereden atlamayı, asansörü, kapı eşiği altına sığınmayı ÖNERME.
+- Deprem anında dışarı kaçmayı, balkona çıkmayı, pencereden atlamayı, asansörü, kapı eşiği altına sığınmayı, 'yaşam üçgeni'ni ÖNERME (AFAD: Çök-Kapan-Tutun).
 - Sele yürüyerek ya da araçla girmeyi ÖNERME.
 - İlaç dozu, tıbbi tedavi önerme; gerekirse "hekiminize danışın" de.
 - Emin olmadığın veya bilmediğin şeyi "belirsizlikler" alanına yaz; istatistik ya da tarih uydurma.
@@ -63,7 +65,7 @@ Hane: il: İstanbul · ilçe: Sarıyer, Ayazağa · yetişkin 2, 65+ 1, bebek 1,
 Plan (JSON): {"oncelikler":[{"is":"Örnek","neden":"x","ne_zaman":"bugün"}]}
 
 Kontrol listesi (her biri için düşün, sonra yalnız bulduğun sorunları yaz):
-1. Tehlikeli ya da güncel olmayan bir öneri var mı? (dışarı kaçma, balkon, asansör, kapı eşiği, sele girme, binanın güvenli olduğunu söyleme)
+1. Tehlikeli ya da güncel olmayan bir öneri var mı? (dışarı kaçma, balkon, asansör, kapı eşiği, yaşam üçgeni, sele girme, binanın güvenli olduğunu söyleme)
 2. Hanedeki kırılgan bir birey (yaşlı, bebek, çocuk, engelli, ilaç kullanan, hayvan) unutulmuş mu?
 3. Seçilen bir afet için aşama (önce/sırasında/sonra) boş mu?
 4. Uydurma görünen sayı, tarih, kurum adı ya da 112 dışında telefon var mı?
@@ -80,7 +82,8 @@ Sorun yoksa "sorunlar" boş dizi olsun.
 After both calls, `sanitize()` runs on every string:
 
 - removes any phone number that is not 112;
-- drops any item matching the `FORBIDDEN` list:
+- drops any item matching the `FORBIDDEN` list;
+- drops AI priorities that repeat a rule-engine topic (DASK, contact person, anchoring, bag, building assessment, carrying plan, flood exit, fire clearance), so the verified rule item with its source stays:
 
 | Pattern (JS regex) | Blocks |
 |---|---|
@@ -91,6 +94,7 @@ After both calls, `sanitize()` runs on every string:
 | `/kapı\s*(kasası\|eşiği)(nın)?\s*(altına\|altında)/i` | kapı eşiği altına sığınma (güncel öneri değil) |
 | `/(su basmış\|selli\|sular altındaki)\s*(yol\|alt geçit)[^.]{0,30}(geç\|gir)(in\|ebilirsiniz)(?![^.]{0,10}me)/i` | selli yoldan geçme |
 | `/bina(nız)?\s*(kesinlikle\s*)?(güvenli\|sağlam)(dir)?\b/i` | bina güvenliği hakkında hüküm |
+| `/(yaşam\|hayat)\s*üçgen/i` | 'yaşam üçgeni' (AFAD önerisi değil; Çök-Kapan-Tutun önerilir) |
 
 ## Why these choices
 
