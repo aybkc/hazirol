@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="HazırOl: haneye özel afet hazırlık planı üreten üretken YZ asistanı (SDG 11.5 & 13.1)">
+</head>
+<body>
+<title>HazırOl Afet Asistanı</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Haneye özel deprem, sel, yangın, heyelan ve aşırı sıcak hazırlık planı üreten üretken YZ asistanı (SDG 11.5, 13.1).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800;900&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: tek sütun "saha kılavuzu" — üstte güncel olay şeridi, sonra asistan (form → plan), sonra geçmiş afetler ve kayıp hesaplayıcı, en altta yöntem ve etik. */
+:root{
+  --bg:#f6f4ef; --panel:#ffffff; --panel-2:#efece4; --ink:#16181d; --ink-2:#3d424d; --ink-3:#6b707c; --line:#dcd7cb;
+  --accent:#d9480f; --accent-ink:#ffffff; --accent-soft:#fde8dc;
+  --teal:#0b6e6e; --teal-soft:#dcefee; --ok:#2b7a3d; --warn:#b7791f; --bad:#c92a2a;
+  --q:#1c4f8a; --flood:#1c6ea4; --fire:#c2410c; --slide:#7a5a2b; --heat:#b42355;
+  --display:"Archivo","Arial Narrow",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+  --r:12px; color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121417; --panel:#1b1e23; --panel-2:#23272e; --ink:#eceae4; --ink-2:#c3c6cc; --ink-3:#8d929c; --line:#323741;
+  --accent:#ff7a3d; --accent-ink:#1a0d05; --accent-soft:#3a2216; --teal:#4fc1bf; --teal-soft:#16302f; --ok:#6cc37e; --warn:#e3ac4a; --bad:#ff6b6b;
+  --q:#7fb0ea; --flood:#69b6e8; --fire:#ff8a4c; --slide:#d0a868; --heat:#f07aa8; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121417; --panel:#1b1e23; --panel-2:#23272e; --ink:#eceae4; --ink-2:#c3c6cc; --ink-3:#8d929c; --line:#323741;
+  --accent:#ff7a3d; --accent-ink:#1a0d05; --accent-soft:#3a2216; --teal:#4fc1bf; --teal-soft:#16302f; --ok:#6cc37e; --warn:#e3ac4a; --bad:#ff6b6b;
+  --q:#7fb0ea; --flood:#69b6e8; --fire:#ff8a4c; --slide:#d0a868; --heat:#f07aa8; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 var(--body);margin:0}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+a{color:var(--teal)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.01em;text-wrap:balance;line-height:1.1}
+h2{font-size:clamp(1.5rem,3.4vw,2.1rem);margin:2.4em 0 .4em;font-weight:800}
+h3{font-size:1.15rem;margin:1.2em 0 .4em;font-weight:700}
+.lab{font:600 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* üst şerit */
+.ticker{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--ink);color:var(--bg);padding:9px max(16px,env(safe-area-inset-left,0px));font:500 13.5px var(--body)}
+.ticker b{font-family:var(--mono);background:var(--accent);color:var(--accent-ink);padding:1px 8px;border-radius:4px;font-size:12px;letter-spacing:.05em}
+.ticker a{color:var(--bg);text-decoration:underline}
+header.top{display:flex;align-items:center;gap:14px;padding:22px 0 8px;flex-wrap:wrap}
+.logo{width:42px;height:42px;flex:none}
+.brand{font:900 1.6rem var(--display);letter-spacing:-.02em}
+.brand span{color:var(--accent)}
+.sdg{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+.sdg span{font:600 12px var(--mono);padding:3px 9px;border-radius:99px;border:1px solid var(--line);background:var(--panel)}
+.sdg span.s11{border-color:#f99d26;color:#b06a0e} .sdg span.s13{border-color:#3f7e44;color:#3f7e44}
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:end;padding:18px 0 8px}
+.hero h1{font-size:clamp(2.1rem,5.4vw,3.6rem);font-weight:900;margin:.1em 0 .25em}
+.hero h1 em{font-style:normal;color:var(--accent)}
+.hero p{font-size:1.08rem;color:var(--ink-2);max-width:60ch;margin:0}
+.stat{border-left:3px solid var(--accent);padding:4px 0 4px 14px;margin:8px 0}
+.stat b{display:block;font:800 1.9rem var(--display);font-variant-numeric:tabular-nums}
+.stat small{color:var(--ink-3)}
+@media (max-width:780px){.hero{grid-template-columns:1fr}}
+
+/* kartlar ve form */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:780px){.grid2,.grid3{grid-template-columns:1fr}}
+fieldset{border:none;margin:0;padding:0;min-width:0}
+legend{font:700 1rem var(--display);margin-bottom:8px;padding:0}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.f label{font-size:.88rem;color:var(--ink-2);font-weight:500}
+input[type=number],input[type=text],select,textarea{background:var(--panel-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.chk{display:flex;gap:8px;align-items:flex-start;font-size:.93rem;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);cursor:pointer}
+.chk input{margin-top:4px;accent-color:var(--accent)}
+.haz{display:flex;flex-wrap:wrap;gap:8px}
+.haz label{display:flex;gap:7px;align-items:center;border:1.5px solid var(--line);border-radius:99px;padding:6px 14px;cursor:pointer;font-weight:600;background:var(--panel)}
+.haz label:has(input:checked){border-color:var(--hc);background:color-mix(in srgb,var(--hc) 12%,var(--panel))}
+.haz input{accent-color:var(--hc)}
+.btn{border:none;border-radius:10px;padding:11px 18px;font-weight:700;cursor:pointer;background:var(--panel-2);border:1px solid var(--line)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn:disabled{opacity:.5;cursor:default}
+.mode{font:500 12.5px var(--mono);color:var(--ink-3)}
+.mode b{color:var(--teal)}
+
+/* plan */
+#plan{margin-top:18px}
+.pl-head{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+.pill{font:600 11.5px var(--mono);padding:2px 9px;border-radius:99px;border:1px solid currentColor}
+.pill.ai{color:var(--teal)} .pill.rule{color:var(--warn)} .pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)}
+.prio{counter-reset:p;list-style:none;padding:0;margin:8px 0}
+.prio li{counter-increment:p;position:relative;padding:10px 12px 10px 48px;border:1px solid var(--line);border-radius:10px;margin:8px 0;background:var(--panel)}
+.prio li::before{content:counter(p);position:absolute;left:12px;top:10px;width:26px;height:26px;border-radius:7px;display:grid;place-items:center;font:700 13px var(--mono);background:var(--accent);color:var(--accent-ink)}
+.prio li small{display:block;color:var(--ink-3)}
+.when{font:600 11px var(--mono);padding:1px 7px;border-radius:5px;background:var(--panel-2);margin-left:6px;color:var(--ink-2)}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 8px}
+.tabs button{border:1.5px solid var(--line);background:var(--panel);border-radius:99px;padding:6px 14px;font-weight:600;cursor:pointer}
+.tabs button.on{border-color:var(--hc);background:color-mix(in srgb,var(--hc) 14%,var(--panel))}
+.phases{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:780px){.phases{grid-template-columns:1fr}}
+.phases>div{border:1px solid var(--line);border-top:4px solid var(--hc);border-radius:10px;padding:10px 12px;background:var(--panel);min-width:0}
+.phases h4{margin:0 0 6px;font:700 .95rem var(--display)}
+.phases ul{margin:0;padding-left:1.1em} .phases li{margin:.3em 0}
+.bag{width:100%;border-collapse:collapse;font-size:.93rem}
+.bag td,.bag th{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
+.bag th{font:600 11.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
+.bag td.q{font:600 13px var(--mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bag tr.add td:first-child::after{content:" · YZ eki";font:600 10.5px var(--mono);color:var(--teal)}
+.scroll{overflow-x:auto}
+.check{border-left:3px solid var(--teal);background:var(--teal-soft);padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
+.check.warn{border-color:var(--warn);background:color-mix(in srgb,var(--warn) 12%,var(--panel))}
+.notice{font-size:.9rem;color:var(--ink-2);border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:12px}
+.thinking{font:500 14px var(--mono);color:var(--ink-3)}
+.thinking::after{content:"▍";animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.raw{font:12.5px/1.5 var(--mono);white-space:pre-wrap;max-height:260px;overflow:auto;background:var(--panel-2);border-radius:8px;padding:10px}
+
+/* afet zaman çizelgesi ve hesap */
+.events{display:grid;gap:12px}
+.ev{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);padding:14px;cursor:pointer;text-align:left;width:100%}
+.ev.on{border-color:var(--hc);box-shadow:0 0 0 2px var(--hc)}
+.ev .d{font:600 12.5px var(--mono);color:var(--ink-3)}
+.ev .t{font:800 1.1rem var(--display);margin:2px 0}
+.ev .n{display:flex;gap:14px;flex-wrap:wrap;font:600 13px var(--mono)}
+.ev .n span b{font-size:1.05rem;font-variant-numeric:tabular-nums}
+.ev .tag{display:inline-block;font:700 11px var(--mono);color:#fff;background:var(--hc);padding:1px 8px;border-radius:5px}
+@media (max-width:620px){.ev{grid-template-columns:1fr}}
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;margin-top:14px}
+@media (max-width:860px){.calc{grid-template-columns:1fr}}
+.slider{margin:10px 0}
+.slider .row{justify-content:space-between}
+.slider input{width:100%;accent-color:var(--accent)}
+.slider output{font:600 13px var(--mono);font-variant-numeric:tabular-nums}
+.mech{width:100%;border-collapse:collapse;font-size:.9rem}
+.mech td,.mech th{border-bottom:1px solid var(--line);padding:6px 6px;text-align:left;vertical-align:top}
+.mech th{font:600 11px var(--mono);text-transform:uppercase;color:var(--ink-3)}
+.mech td.num{font:600 13px var(--mono);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media (max-width:520px){.mech tr:first-child{display:none}.mech tr{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:start;border-bottom:1px solid var(--line);padding:9px 0}.mech td{border:0;padding:0}.mech td:first-child{grid-column:1/-1;font-weight:600}.mech td.num:nth-child(2){text-align:left}}
+.big{font:900 clamp(2rem,6vw,3rem) var(--display);font-variant-numeric:tabular-nums;color:var(--accent);line-height:1}
+.src{font-size:.82rem;color:var(--ink-3)}
+.src a{color:var(--ink-3)}
+.bar{height:16px;border-radius:5px;background:var(--panel-2);overflow:hidden;position:relative;border:1px solid var(--line)}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--accent);opacity:.85}
+.bar i.lo{background:var(--teal)}
+details{border:1px solid var(--line);border-radius:10px;background:var(--panel);margin:8px 0}
+details summary{cursor:pointer;padding:10px 14px;font-weight:600}
+details>div{padding:0 14px 12px}
+pre.prompt{font:12.5px/1.55 var(--mono);white-space:pre-wrap;background:var(--panel-2);border-radius:8px;padding:12px;overflow-x:auto;margin:0}
+.ethic{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:780px){.ethic{grid-template-columns:1fr}}
+.ethic>div{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}
+.ethic b{display:block;font-family:var(--display)}
+footer{margin-top:40px;font-size:.85rem;color:var(--ink-3);border-top:1px solid var(--line);padding-top:14px}
+.tt{position:fixed;top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px));z-index:9;border:1px solid var(--line);background:var(--panel);border-radius:99px;padding:5px 10px;font:600 12px var(--mono);cursor:pointer}
+</style>
+
+<button class="tt" id="themeBtn" type="button" aria-label="Tema değiştir">◐</button>
+<div class="ticker" role="note"><b>GÜNCEL</b> 14–15 Ekim 2026 İstanbul–Kocaeli seli: 6 can kaybı, 3.055 kişi mahsur kaldığı yerden kurtarıldı. Ölümlerin çoğu sel suyuna girmek, elektrik akımı ve dere yatağıyla ilgili. <a href="#gecmis" data-ev="istanbul26">Ne kadarı önlenebilirdi? →</a></div>
+<div class="wrap">
+<header class="top">
+  <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="10" fill="var(--accent)"/><path d="M10 31 L18 23 L24 28 L32 17 L38 23" fill="none" stroke="var(--accent-ink)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 36 H34" stroke="var(--accent-ink)" stroke-width="3.4" stroke-linecap="round"/></svg>
+  <div class="brand">Hazır<span>Ol</span></div>
+  <div class="sdg"><span class="s11">SDG 11.5 · afet kayıplarını azalt</span><span class="s13">SDG 13.1 · iklim afetlerine dayanıklılık</span></div>
+</header>
+
+<section class="hero">
+  <div>
+    <div class="lab">Haneye özel afet hazırlık asistanı · üretken YZ</div>
+    <h1>Afet <em>herkese aynı</em> gelir, hazırlık gelmez.</h1>
+    <p>Kaç kişi yaşıyorsunuz, evde yaşlı ya da bebek var mı, binanız kaç yılında yapıldı, dereye yakın mısınız? HazırOl bu bilgilerle deprem, sel, orman yangını, heyelan ve aşırı sıcak için <b>sizin evinize göre</b> sıralanmış bir eylem planı, aile iletişim planı ve miktarları hesaplanmış bir acil durum çantası listesi hazırlar.</p>
+  </div>
+  <div>
+    <div class="stat"><b>53.537</b><small>6 Şubat 2023 depremlerinde can kaybı (resmî açıklama)</small></div>
+    <div class="stat"><b>151</b><small>23 Nisan 2025 İstanbul (M6.2) depreminde panikle kendini dışarı atarak yaralanan kişi; ölüm yok</small></div>
+    <div class="stat"><b>81.473 ha</b><small>2025'te yanan orman alanı; nedeni bilinen yangınların ~%90'ı insan kaynaklı</small></div>
+  </div>
+</section>
+
+<h2 id="asistan">1 · Hanenizi tanıtın</h2>
+<form id="form" class="card" autocomplete="off">
+  <div class="grid2">
+    <fieldset>
+      <legend>Konum ve hane</legend>
+      <div class="grid2">
+        <div class="f"><label for="il">İl</label><select id="il"></select></div>
+        <div class="f"><label for="ilce">İlçe / mahalle (isteğe bağlı)</label><input type="text" id="ilce" placeholder="ör. Sarıyer, Ayazağa"></div>
+        <div class="f"><label for="yetiskin">Yetişkin (18–64)</label><input type="number" id="yetiskin" min="0" max="20" value="2"></div>
+        <div class="f"><label for="yasli">65 yaş ve üstü</label><input type="number" id="yasli" min="0" max="10" value="1"></div>
+        <div class="f"><label for="bebek">Bebek (0–2)</label><input type="number" id="bebek" min="0" max="10" value="0"></div>
+        <div class="f"><label for="cocuk">Çocuk (3–17)</label><input type="number" id="cocuk" min="0" max="10" value="1"></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="chk"><input type="checkbox" id="engel"> Hareket kısıtlı / engelli birey var</label>
+        <label class="chk"><input type="checkbox" id="ilac" checked> Düzenli ilaç kullanan var</label>
+        <label class="chk"><input type="checkbox" id="hayvan"> Evcil hayvan var</label>
+        <label class="chk"><input type="checkbox" id="arac"> Araç var</label>
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Bina ve çevre</legend>
+      <div class="grid2">
+        <div class="f"><label for="yapi">Bina yapım yılı</label><select id="yapi"><option value="lt2000">2000'den önce</option><option value="2000-2018" selected>2000–2018</option><option value="gt2018">2019 ve sonrası</option><option value="bilinmiyor">Bilmiyorum</option></select></div>
+        <div class="f"><label for="kat">Oturduğunuz kat / toplam kat</label><div class="row" style="flex-wrap:nowrap"><input type="number" id="kat" min="-3" max="60" value="3" aria-label="Oturulan kat"><span>/</span><input type="number" id="toplamkat" min="1" max="60" value="6" aria-label="Toplam kat"></div></div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <label class="chk"><input type="checkbox" id="catlak"> Taşıyıcı elemanlarda çatlak / hasar görüyorum</label>
+        <label class="chk"><input type="checkbox" id="dask"> DASK (zorunlu deprem sigortası) var</label>
+        <label class="chk"><input type="checkbox" id="dere"> Ev dere yatağına / alçak bir alana yakın</label>
+        <label class="chk"><input type="checkbox" id="bodrum"> Bodrum ya da zemin katta yaşıyoruz</label>
+        <label class="chk"><input type="checkbox" id="orman"> Orman / makilik alan kenarı</label>
+        <label class="chk"><input type="checkbox" id="yamac"> Eğimli yamaçta</label>
+      </div>
+    </fieldset>
+  </div>
+  <fieldset style="margin-top:14px">
+    <legend>Hangi afetler için plan istiyorsunuz?</legend>
+    <div class="haz" id="hazards"></div>
+  </fieldset>
+  <div class="row" style="margin-top:16px;justify-content:space-between">
+    <div class="row"><button class="btn primary" id="go" type="submit">Planımı hazırla</button><button class="btn" id="sample" type="button">Örnek hane: Ayazağa</button></div>
+    <div class="mode" id="mode">Model kontrol ediliyor…</div>
+  </div>
+  <div class="f" id="keyBox" hidden style="margin-top:12px">
+    <label for="gkey">Gemini API anahtarı (yalnız tarayıcınızda kalır; boş bırakırsanız kural tabanlı temel plan üretilir)</label>
+    <input type="text" id="gkey" placeholder="AIza…">
+  </div>
+</form>
+
+<div id="plan" aria-live="polite"></div>
+
+<h2 id="gecmis">2 · Bu uygulama olsaydı ne kadarı önlenebilirdi?</h2>
+<p style="max-width:70ch;color:var(--ink-2)">Her olayın kaybı <b>nedenlerine</b> ayrıldı. Bir hazırlık asistanı binayı güçlendiremez, yağmuru durduramaz; ama <b>davranışa bağlı</b> kayıpları azaltabilir. Aşağıda yalnız bu kısım hesaplanıyor. Varsayımları kaydırıcılarla değiştirebilirsiniz; sonuç her zaman bir aralıktır.</p>
+<div class="events" id="events"></div>
+<div class="calc card" id="calc"></div>
+
+<h2 id="nasil">3 · Nasıl çalışıyor? Promptlar ve doğrulama</h2>
+<div class="grid3">
+  <div class="card"><div class="lab">Adım 1 · kural motoru</div><h3 style="margin-top:.3em">Deterministik temel</h3>Çanta miktarları (su, gıda, bebek bezi), zorunlu güvenlik kuralları ve AFAD temelli eylem listesi kodla hesaplanır. YZ çalışmasa da plan çıkar.</div>
+  <div class="card"><div class="lab">Adım 2 · üretken YZ</div><h3 style="margin-top:.3em">Kişiselleştirme</h3>Model hane profiline göre önceliklendirir, hane üyelerine özel öneriler ve eksik çanta öğeleri ekler. Şema-önce JSON, tek örnekli (few-shot) ve adım adım düşündürme kullanılır.</div>
+  <div class="card"><div class="lab">Adım 3 · doğrulama</div><h3 style="margin-top:.3em">İki katmanlı kontrol</h3>Kural tabanlı denetçi tehlikeli ifadeleri (ör. "dışarı atla", "asansör", "selli yoldan geç") ve uydurma telefon numaralarını yakalar; ikinci bir YZ çağrısı planı AFAD kurallarına karşı eleştirir.</div>
+</div>
+<details><summary>Ana plan promptu (şema-önce + few-shot + adım adım)</summary><div><pre class="prompt" id="promptView"></pre></div></details>
+<details><summary>Doğrulama promptu (ikinci model çağrısı, feedback-in-loop)</summary><div><pre class="prompt" id="valView"></pre></div></details>
+
+<h2 id="etik">4 · Etik değerlendirme</h2>
+<div class="ethic">
+  <div><b>Halüsinasyon → yanlış talimat</b>Model, deprem anında "balkona çık" gibi ölümcül bir öneri üretebilir. Önlem: kural tabanlı güvenlik listesi her zaman eklenir; yasaklı ifade sözlüğüyle çıktı taranır, işaretlenen madde gösterilmez ve uyarı verilir.</div>
+  <div><b>Uydurma numara ve kaynak</b>Model yanlış bir acil numara yazabilir. Önlem: yalnız 112'ye izin verilir; çıktıdaki başka her telefon numarası silinir.</div>
+  <div><b>Sahte güven</b>"Binanız güvenli" demek ölümcül olabilir. Önlem: model bina güvenliği hakkında hüküm veremez (negatif kısıt); yapım yılı 2000 öncesi ya da çatlak varsa lisanslı kuruluştan deprem performans analizi önerisi zorunludur.</div>
+  <div><b>Kırılgan gruplar</b>Yaşlı, bebek, engelli ve ilaç kullanan bireyler için öneriler atlanmasın diye her grup için ayrı madde zorunlu tutulur. İlaç dozu ya da tıbbi tavsiye verilmez; "hekiminize danışın" yönlendirmesi yapılır.</div>
+  <div><b>Mahremiyet</b>Ad, adres, telefon istenmez. İlçe alanı isteğe bağlıdır. Veriler sunucuda saklanmaz; plan yalnız bu tarayıcıda oluşur.</div>
+  <div><b>Kayıp hesabında abartı</b>"Şu kadar can kurtarılırdı" iddiası kanıtlanamaz. Önlem: yalnız davranışa bağlı kayıplar sayılır, sonuç aralık olarak verilir, tüm varsayımlar ve kaynaklar görünür ve değiştirilebilir; bina çöküşü kaynaklı ölümler hesaba katılmaz.</div>
+</div>
+<p class="notice">HazırOl resmî bir uyarı sistemi değildir. Acil durumda <b>112</b>'yi arayın. Resmî bilgi için AFAD, Meteoroloji Genel Müdürlüğü uyarıları ve valilik açıklamalarını takip edin. Toplanma alanınızı e-Devlet'teki "Acil Toplanma Alanı Sorgulama" hizmetinden öğrenebilirsiniz.</p>
+
+<footer>HazırOl · Samsung Innovation Campus Generative AI Hackathon (SDG'ler için Üretken YZ), Ekim 2026. Olay verileri: resmî açıklamalara dayanan haberler ve raporlar; kaynaklar her olayın altında. Planlar bilgilendirme amaçlıdır.</footer>
+</div>
+
+<script>
+"use strict";
+/* ================= veri ================= */
+const ILLER = "Adana,Adıyaman,Afyonkarahisar,Ağrı,Aksaray,Amasya,Ankara,Antalya,Ardahan,Artvin,Aydın,Balıkesir,Bartın,Batman,Bayburt,Bilecik,Bingöl,Bitlis,Bolu,Burdur,Bursa,Çanakkale,Çankırı,Çorum,Denizli,Diyarbakır,Düzce,Edirne,Elazığ,Erzincan,Erzurum,Eskişehir,Gaziantep,Giresun,Gümüşhane,Hakkari,Hatay,Iğdır,Isparta,İstanbul,İzmir,Kahramanmaraş,Karabük,Karaman,Kars,Kastamonu,Kayseri,Kırıkkale,Kırklareli,Kırşehir,Kilis,Kocaeli,Konya,Kütahya,Malatya,Manisa,Mardin,Mersin,Muğla,Muş,Nevşehir,Niğde,Ordu,Osmaniye,Rize,Sakarya,Samsun,Siirt,Sinop,Sivas,Şanlıurfa,Şırnak,Tekirdağ,Tokat,Trabzon,Tunceli,Uşak,Van,Yalova,Yozgat,Zonguldak".split(",");
+
+const HAZ = {
+  deprem: { ad: "Deprem", c: "var(--q)",
+    once: ["Dolap, kitaplık, buzdolabı gibi devrilebilecek eşyaları duvara sabitleyin; yatağın üstüne ağır çerçeve ya da raf asmayın.", "Her odada sağlam masa yanı gibi bir 'güvenli nokta' belirleyin, evdekilerle bir kez Çök-Kapan-Tutun tatbikatı yapın.", "Acil durum çantasını kapıya yakın, kolay alınır bir yere koyun.", "e-Devlet'te 'Acil Toplanma Alanı Sorgulama' ile size en yakın toplanma alanını öğrenip ailece yürüyerek gidin.", "Gaz, su ve elektrik ana vanalarının yerini ve nasıl kapatıldığını evdeki her yetişkine gösterin."],
+    sirasinda: ["Çök, Kapan, Tutun: sağlam bir masanın yanına çökün, başınızı ve boynunuzu koruyun, sarsıntı bitene kadar bekleyin.", "Pencereden, balkondan ya da merdivenden dışarı kaçmaya çalışmayın; asansör kullanmayın. 23 Nisan 2025 İstanbul depreminde 151 kişi kendini dışarı atarak yaralandı.", "Yataktaysanız yüz üstü dönüp başınızı yastıkla koruyun.", "Dışarıdaysanız binalardan, duvarlardan, direk ve tellerden uzak açık bir alana geçin.", "Araçtaysanız köprü, üst geçit ve binalardan uzakta durup araçta kalın."],
+    sonra: ["Sarsıntı bitince gaz vanasını kapatın, kibrit ya da çakmak yakmayın.", "Hasar gören binaya geri girmeyin. 2025 Sındırgı'da ilk depremde hasar görüp boşaltılan binalar Ekim'deki ikinci depremde yıkıldı; içinde kimse olmadığı için can kaybı yaşanmadı.", "Artçı sarsıntılara hazırlıklı olun, toplanma alanına gidin.", "Telefon hatlarını meşgul etmeyin; mümkünse kısa mesaj kullanın, yalnız acil durumda 112'yi arayın.", "Enkaz altındaysanız düdük çalın ya da boruya vurun; tozdan korunmak için ağzınızı kapatın."] },
+  sel: { ad: "Sel / su baskını", c: "var(--flood)",
+    once: ["Meteoroloji turuncu ve kırmızı kod uyarılarını takip edin; uyarı varsa dere kenarı ve alt geçit rotalarını kullanmayın.", "Değerli eşya, evrak ve elektrikli cihazları üst raflara ya da üst kata alın.", "Bodrum ya da zemin kattaysanız yükseğe çıkış yolunu ve komşuda kalınabilecek bir üst katı önceden konuşun.", "Önemli belgelerin fotokopisini su geçirmez poşette çantaya koyun."],
+    sirasinda: ["Akan sele yürüyerek girmeyin: yaklaşık 15 cm akan su insanı düşürebilir. Ekim 2026 İstanbul selinde sular altındaki yolu geçmeye çalışan bir kişi hayatını kaybetti.", "Araçla su basmış yola, alt geçide ya da dere köprüsüne girmeyin: yaklaşık 30 cm akan su aracı sürükleyebilir.", "Su birikintisi içindeki elektrik direği, aydınlatma ve kablolardan uzak durun; elektrik çarpma riski vardır.", "Dere yatağından ve köprü altlarından uzaklaşıp yüksek bir yere çıkın.", "Mahsur kaldıysanız üst kata ya da çatıya çıkın, 112'yi arayın ve yerinizi bildirin."],
+    sonra: ["Elektrik tesisatı kuruyup kontrol edilmeden şalteri açmayın.", "Musluk suyu kirlenmiş olabilir; resmî açıklama gelene kadar şişe su kullanın.", "Selden geçen gıdaları atın.", "Hasarı fotoğraflayıp sigorta ve belediyeye bildirin."] },
+  yangin: { ad: "Orman yangını", c: "var(--fire)",
+    once: ["Evin çevresinde yaklaşık 10 metrelik alanı kuru ot, çalı ve yanıcı malzemeden temizleyin.", "Mahalleden çıkış için iki ayrı tahliye yolu belirleyin.", "Yangın riskinin yüksek olduğu günlerde ormanda ateş yakmayın, anız yakmayın, cam ve sigara atmayın; nedeni bilinen yangınların yaklaşık %90'ı insan kaynaklıdır."],
+    sirasinda: ["Duman ya da alev görürseniz hemen 112'yi arayın.", "Tahliye talimatı gelince beklemeden çıkın; geç kalan araçlar dumanda mahsur kalabilir.", "Dumandan korunmak için ağzınızı ıslak bezle kapatın, rüzgârın tersine ve yangından uzaklaşan yöne gidin.", "Bahçe hortumuyla yangına müdahaleye çalışmayın; ekiplerin yolunu açık bırakın."],
+    sonra: ["Yetkililer izin vermeden eve dönmeyin; için için yanan kökler yeniden alevlenebilir.", "Kül ve is temizliğinde maske ve eldiven kullanın."] },
+  heyelan: { ad: "Heyelan", c: "var(--slide)",
+    once: ["Yamaçta yeni çatlaklar, eğilen ağaç ve direkler, yeni su çıkışları ya da kapı ve pencerelerde sıkışma gibi işaretleri takip edin.", "Şiddetli yağış sonrası günlerde yamaç altı yolları kullanmaktan kaçının."],
+    sirasinda: ["Gürültü, toprak akması ya da çatırtı duyarsanız akış yönüne dik doğrultuda yükseğe uzaklaşın.", "Dere yataklarından ve yamaç eteğinden uzak durun; heyelan selle birlikte gelebilir."],
+    sonra: ["Yeniden kayma olabilir; bölgeye dönmek için yetkililerin iznini bekleyin.", "Kırık gaz, su ve elektrik hatlarını 112'ye bildirin."] },
+  sicak: { ad: "Aşırı sıcak", c: "var(--heat)",
+    once: ["Evin en serin odasını belirleyin; perdeleri gündüz kapalı tutun.", "Yaşlı ve kronik hastası olan komşuları sıcak dalgası boyunca günde bir kez arayın."],
+    sirasinda: ["Saat 11.00–16.00 arasında güneş altında ağır iş yapmayın, susamayı beklemeden sık sık su için.", "Çocuk, yaşlı ya da hayvanı park halindeki araçta kesinlikle bırakmayın.", "Baş dönmesi, bulantı, bilinç bulanıklığı sıcak çarpması belirtisi olabilir: serin yere alın, 112'yi arayın."],
+    sonra: ["İlaç kullanan bireyler sıcak dönemde ilaç düzenini hekimine danışmalı."] },
+};
+
+/* çanta: miktarlar koddan hesaplanır */
+function bagList(h) {
+  const n = h.yetiskin + h.yasli + h.bebek + h.cocuk, gun = 3;
+  const L = [
+    ["Su (içme + temel hijyen)", `${n * 4 * gun} L`, `${n} kişi × ~4 L × ${gun} gün`],
+    ["Bozulmayan gıda (konserve, kuru gıda, bisküvi)", `${n * gun * 3} öğün`, `${n} kişi × 3 öğün × ${gun} gün; anahtar gerektirmeyen kapaklar`],
+    ["İlk yardım çantası", "1", "yara bandı, gazlı bez, antiseptik, makas"],
+    ["Düdük", `${Math.max(1, n)}`, "enkaz altında ses vermek için kişi başı"],
+    ["El feneri + yedek pil", "1–2", ""], ["Pilli radyo", "1", "elektrik ve internet kesilirse resmî duyurular"],
+    ["Powerbank ve şarj kablosu", "1", "dolu tutun"], ["Toz maskesi ve iş eldiveni", `${n}`, "kişi başı"],
+    ["Battaniye / termal örtü", `${n}`, ""], ["Yedek kıyafet ve iç çamaşırı", `${n} set`, ""],
+    ["Önemli belgelerin fotokopisi (kimlik, tapu, DASK, sağlık)", "1 dosya", "su geçirmez poşette"],
+    ["Nakit para", "küçük banknot", "elektrik kesintisinde kart çalışmayabilir"],
+    ["Hijyen malzemesi (ıslak mendil, sabun, tuvalet kâğıdı)", "1 set", ""],
+  ];
+  if (h.ilac) L.push(["Düzenli ilaçlar (en az 3 günlük) + reçete fotokopisi", `${gun} gün+`, "son kullanma tarihlerini 6 ayda bir kontrol edin"]);
+  if (h.bebek) L.push(["Mama / süt tozu ve biberon", `${h.bebek * gun} gün`, ""], ["Bebek bezi", `${h.bebek * 8 * gun} adet`, `${h.bebek} bebek × ~8 × ${gun} gün`]);
+  if (h.cocuk) L.push(["Çocuk için küçük oyuncak / kitap", `${h.cocuk}`, "stresi azaltır"]);
+  if (h.yasli) L.push(["Yedek gözlük, işitme cihazı pili, baston", `${h.yasli} set`, ""]);
+  if (h.engel) L.push(["Yardımcı cihazların yedek parçası / bataryası", "1 set", "tekerlekli sandalye, şarjlı cihazlar"]);
+  if (h.hayvan) L.push(["Evcil hayvan maması, su kabı, tasma, aşı kartı", `${gun} gün`, ""]);
+  return L;
+}
+
+/* yerel risk faktörleri → zorunlu öncelikler (kural motoru) */
+function rulePriorities(h) {
+  const P = [];
+  if (h.hazards.includes("deprem")) {
+    if (h.yapi === "lt2000" || h.yapi === "bilinmiyor" || h.catlak) P.push({ baslik: "Binanız için deprem performans (riskli yapı) analizi isteyin", neden: h.catlak ? "Taşıyıcı elemanlarda hasar bildirdiniz." : h.yapi === "lt2000" ? "2000 öncesi binalar 1999 sonrası yönetmeliklerden önce yapıldı." : "Yapım yılını bilmiyorsunuz.", ne_zaman: "bu ay", afet: "deprem" });
+    if (!h.dask) P.push({ baslik: "DASK poliçesi yaptırın", neden: "Zorunlu deprem sigortası olmadan hasarın maliyeti tamamen size kalır.", ne_zaman: "bu hafta", afet: "deprem" });
+    P.push({ baslik: "Devrilebilecek eşyaları duvara sabitleyin", neden: "1999 İzmit depremindeki yaralanmaların yaklaşık yarısı yapısal olmayan nedenlerdendi.", ne_zaman: "bu hafta", afet: "deprem" });
+  }
+  if (h.hazards.includes("sel") && (h.dere || h.bodrum)) P.push({ baslik: "Su yükselirse çıkacağınız üst katı ve yolu belirleyin", neden: h.bodrum ? "Bodrum / zemin kat sel suyuyla dakikalar içinde dolabilir." : "Dere yatağına yakın yaşıyorsunuz.", ne_zaman: "bugün", afet: "sel" });
+  if (h.hazards.includes("yangin") && h.orman) P.push({ baslik: "Evin 10 m çevresini yanıcı malzemeden temizleyin", neden: "Orman kenarındaki evlere kıvılcım yüzlerce metre uzaktan sıçrayabilir.", ne_zaman: "bu hafta", afet: "yangin" });
+  if (h.yasli || h.engel) P.push({ baslik: "Hareket kısıtlı / yaşlı birey için 'kim, kimi taşıyacak' planı", neden: "Tahliyede en çok zaman kaybı yardım gerektiren bireylerde olur.", ne_zaman: "bu hafta", afet: "genel" });
+  P.push({ baslik: "Acil durum çantasını hazırlayın", neden: "Afetin ilk 72 saatinde dış yardım gecikebilir.", ne_zaman: "bu hafta", afet: "genel" });
+  P.push({ baslik: "İl dışında yaşayan bir 'iletişim kişisi' belirleyin", neden: "Yerel hatlar dolduğunda şehirlerarası arama ya da mesaj daha kolay ulaşır.", ne_zaman: "bugün", afet: "genel" });
+  return P;
+}
+
+/* ================= güvenlik denetçisi ================= */
+const FORBIDDEN = [
+  [/balkon(a|dan)?\s*(çık|kaç|atla)/i, "deprem sırasında balkona çıkma / atlama"],
+  [/(pencere|cam)(den|dan)\s*(atla|kaç)/i, "pencereden atlama"],
+  [/kendini(zi)?\s*dışarı\s*at/i, "kendini dışarı atma"],
+  [/(deprem|sarsıntı)[^.]{0,40}asansör(ü)?\s*kullan(ın|abilirsiniz)/i, "deprem sırasında asansör"],
+  [/kapı\s*(kasası|eşiği)(nın)?\s*(altına|altında)/i, "kapı eşiği altına sığınma (güncel öneri değil)"],
+  [/(su basmış|selli|sular altındaki)\s*(yol|alt geçit)[^.]{0,30}(geç|gir)(in|ebilirsiniz)(?![^.]{0,10}me)/i, "selli yoldan geçme"],
+  [/bina(nız)?\s*(kesinlikle\s*)?(güvenli|sağlam)(dir)?\b/i, "bina güvenliği hakkında hüküm"],
+];
+function sanitize(text) {
+  const issues = [];
+  let t = String(text);
+  for (const [re, why] of FORBIDDEN) if (re.test(t)) issues.push(why);
+  // 112 dışındaki telefon numaraları
+  t = t.replace(/(?<!\d)(\+?90[\s-]?)?(0?\d{3}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|1\d{2,3}|\b4\d{2}\s?\d{2}\s?\d{2}\b)(?!\d)/g, (m) => { if (m.replace(/\D/g, "") === "112") return m; issues.push("doğrulanmamış telefon numarası silindi: " + m); return "[numara kaldırıldı — 112]"; });
+  return { text: t, issues };
+}
+
+/* ================= prompt ================= */
+const FEWSHOT_IN = `il: Hatay · ilçe: Antakya · yetişkin 1, 65+ 2, bebek 0, çocuk 0 · hareket kısıtlı: evet · ilaç: evet · evcil hayvan: hayır · araç: hayır · bina: 2000 öncesi, 2/4. kat, çatlak: hayır, DASK: hayır · çevre: dere: hayır, bodrum: hayır, orman: hayır, yamaç: hayır · afetler: deprem, sicak`;
+const FEWSHOT_OUT = `{"ozet":"Tek yetişkinin iki yaşlıya baktığı, 2000 öncesi bir binada yaşayan hane. En büyük risk deprem anında hareket kısıtlı bireyin korunması ve binanın bilinmeyen dayanımı.","oncelikler":[{"baslik":"Binanız için lisanslı kuruluştan deprem performans analizi isteyin","neden":"2000 öncesi yapı; dayanımı bilinmiyor.","ne_zaman":"bu ay","afet":"deprem"},{"baslik":"Hareket kısıtlı annenizin yatağını pencereden uzak, devrilecek eşya olmayan duvara alın","neden":"Sarsıntıda yataktan kalkıp güvenli noktaya gidemeyebilir.","ne_zaman":"bugün","afet":"deprem"}],"afetler":{"deprem":{"once":["Yaşlıların yatak başına düdük ve el feneri asın."],"sirasinda":["Yatağındaki yaşlı yüz üstü dönüp başını yastıkla korusun; kaldırmaya çalışmayın."],"sonra":["Bir komşuyla 'kim kimi kontrol edecek' anlaşması yapın."]},"sicak":{"once":["Klimalı bir halk mekânının adresini öğrenin."],"sirasinda":["Yaşlılara saat başı su içirin."],"sonra":[]}},"hane_ozel":[{"kisi":"65+ (2 kişi)","oneri":"Kullandıkları ilaçların listesini ve dozlarını hekimden yazılı alıp çantaya koyun."}],"iletisim_plani":["İl dışındaki bir akrabayı herkesin arayacağı tek kişi olarak belirleyin."],"canta_ek":[{"esya":"Yetişkin bezi","neden":"hareket kısıtlı birey için"}],"belirsizlikler":["Binanın zemin sınıfını bilmiyoruz."]}`;
+
+function buildPrompt(h) {
+  const prof = profileLine(h);
+  return `Sen Türkiye'de afet hazırlığı konusunda AFAD rehberlerini bilen, sakin ve net konuşan bir afet hazırlık danışmanısın.
+
+GÖREV: Aşağıdaki hane için kişiye özel afet hazırlık planı hazırla.
+
+BAĞLAM: Kullanıcı bu planı evde, afetten ÖNCE okuyacak. Uygulama ayrıca kendi kural motoruyla temel kontrol listesini ve çanta miktarlarını ekliyor; sen bu haneye ÖZGÜ olanı ekle, genel bilgiyi tekrar etme.
+
+ADIM ADIM DÜŞÜN (bu adımları yazma, yalnız sonucu JSON'a dök):
+1. Hanedeki kırılgan bireyleri (yaşlı, bebek, çocuk, engelli, ilaç kullanan, evcil hayvan) listele.
+2. Bina ve çevre risk faktörlerini (yapım yılı, kat, bodrum, dere, orman, yamaç) seçilen afetlerle eşleştir.
+3. En çok can kurtaracak 5–7 eylemi önem sırasına diz; her biri için neden ve zaman (bugün / bu hafta / bu ay) belirt.
+4. Her seçilen afet için önce / sırasında / sonra maddelerini bu haneye uyarla (her aşamada en fazla 3 madde).
+
+KISITLAR:
+- Yalnız geçerli JSON döndür, başka metin yazma.
+- Binanın güvenli ya da sağlam olduğunu ASLA söyleme; bina hakkında hüküm verme, yalnız lisanslı kuruluştan inceleme öner.
+- Telefon numarası olarak yalnız 112 yazabilirsin; başka numara, web adresi veya kurum içi hat uydurma.
+- Deprem anında dışarı kaçmayı, balkona çıkmayı, pencereden atlamayı, asansörü, kapı eşiği altına sığınmayı ÖNERME.
+- Sele yürüyerek ya da araçla girmeyi ÖNERME.
+- İlaç dozu, tıbbi tedavi önerme; gerekirse "hekiminize danışın" de.
+- Emin olmadığın veya bilmediğin şeyi "belirsizlikler" alanına yaz; istatistik ya da tarih uydurma.
+- Dil: sade Türkçe, 2. çoğul şahıs, her madde en fazla 25 kelime.
+
+ÇIKTI ŞEMASI:
+{"ozet":string,"oncelikler":[{"baslik":string,"neden":string,"ne_zaman":"bugün"|"bu hafta"|"bu ay","afet":string}],"afetler":{"<seçilen afet anahtarı>":{"once":[string],"sirasinda":[string],"sonra":[string]}},"hane_ozel":[{"kisi":string,"oneri":string}],"iletisim_plani":[string],"canta_ek":[{"esya":string,"neden":string}],"belirsizlikler":[string]}
+Afet anahtarları: deprem, sel, yangin, heyelan, sicak.
+
+ÖRNEK GİRDİ:
+${FEWSHOT_IN}
+ÖRNEK ÇIKTI:
+${FEWSHOT_OUT}
+
+ŞİMDİ BU HANE:
+${prof}`;
+}
+function buildValidatorPrompt(h, plan) {
+  return `Sen bir afet güvenliği denetçisisin. Aşağıdaki plan bir YZ tarafından üretildi. Görevin planı AFAD'ın temel kurallarına göre denetlemek.
+
+Hane: ${profileLine(h)}
+Plan (JSON): ${JSON.stringify(plan).slice(0, 12000)}
+
+Kontrol listesi (her biri için düşün, sonra yalnız bulduğun sorunları yaz):
+1. Tehlikeli ya da güncel olmayan bir öneri var mı? (dışarı kaçma, balkon, asansör, kapı eşiği, sele girme, binanın güvenli olduğunu söyleme)
+2. Hanedeki kırılgan bir birey (yaşlı, bebek, çocuk, engelli, ilaç kullanan, hayvan) unutulmuş mu?
+3. Seçilen bir afet için aşama (önce/sırasında/sonra) boş mu?
+4. Uydurma görünen sayı, tarih, kurum adı ya da 112 dışında telefon var mı?
+5. Birbiriyle çelişen iki madde var mı?
+
+Yalnız şu JSON'u döndür: {"sorunlar":[{"madde":string,"neden":string,"ciddiyet":"yüksek"|"orta"|"düşük"}],"genel":"tek cümle değerlendirme"}
+Sorun yoksa "sorunlar" boş dizi olsun.`;
+}
+function profileLine(h) {
+  const yapi = { lt2000: "2000 öncesi", "2000-2018": "2000–2018", gt2018: "2019 ve sonrası", bilinmiyor: "bilinmiyor" }[h.yapi];
+  const yn = (b) => (b ? "evet" : "hayır");
+  return `il: ${h.il}${h.ilce ? " · ilçe: " + h.ilce : ""} · yetişkin ${h.yetiskin}, 65+ ${h.yasli}, bebek ${h.bebek}, çocuk ${h.cocuk} · hareket kısıtlı: ${yn(h.engel)} · ilaç: ${yn(h.ilac)} · evcil hayvan: ${yn(h.hayvan)} · araç: ${yn(h.arac)} · bina: ${yapi}, ${h.kat}/${h.toplamkat}. kat, çatlak: ${yn(h.catlak)}, DASK: ${yn(h.dask)} · çevre: dere: ${yn(h.dere)}, bodrum: ${yn(h.bodrum)}, orman: ${yn(h.orman)}, yamaç: ${yn(h.yamac)} · afetler: ${h.hazards.join(", ")}`;
+}
+
+/* ================= model katmanı ================= */
+let sampleFn = null;
+const modeEl = document.getElementById("mode");
+async function initModel() {
+  if (window.claude && typeof window.claude.use === "function") {
+    try { sampleFn = await window.claude.use("sample"); } catch (e) { sampleFn = null; }
+  }
+  if (sampleFn) { modeEl.innerHTML = "Model: <b>Claude</b> (claude.ai üzerinden, canlı)"; return; }
+  document.getElementById("keyBox").hidden = false;
+  modeEl.innerHTML = "Model: <b>Gemini</b> (anahtar girilirse) · yoksa kural tabanlı temel plan";
+}
+function parseJSON(text) {
+  const t = String(text).trim();
+  try { return JSON.parse(t); } catch (e) {}
+  const m = t.match(/```(?:json)?\s*([\s\S]*?)```/); if (m) { try { return JSON.parse(m[1]); } catch (e) {} }
+  const a = t.indexOf("{"), b = t.lastIndexOf("}"); if (a >= 0 && b > a) return JSON.parse(t.slice(a, b + 1));
+  throw new Error("JSON çözülemedi");
+}
+async function askModel(prompt, tier) {
+  if (sampleFn) {
+    try { return await sampleFn.json(prompt, { modelTier: tier || "default" }); }
+    catch (e) { const err = new Error(e && e.code ? e.code : "model_error"); err.code = e && e.code; throw err; }
+  }
+  const key = document.getElementById("gkey").value.trim();
+  if (!key) { const e = new Error("no_model"); e.code = "no_model"; throw e; }
+  const r = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + encodeURIComponent(key), {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { temperature: 0.3, responseMimeType: "application/json" } }),
+  });
+  if (!r.ok) { const e = new Error("gemini_" + r.status); e.code = "upstream_error"; throw e; }
+  const j = await r.json();
+  return parseJSON(j.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") || "");
+}
+
+/* ================= form ================= */
+const $ = (id) => document.getElementById(id);
+$("il").innerHTML = ILLER.map((x) => `<option${x === "İstanbul" ? " selected" : ""}>${x}</option>`).join("");
+$("hazards").innerHTML = Object.entries(HAZ).map(([k, v]) => `<label style="--hc:${v.c}"><input type="checkbox" name="hz" value="${k}"${k === "deprem" || k === "sel" ? " checked" : ""}> ${v.ad}</label>`).join("");
+function readForm() {
+  const n = (id) => Math.max(0, parseInt($(id).value || "0", 10) || 0);
+  const b = (id) => $(id).checked;
+  return { il: $("il").value, ilce: $("ilce").value.trim().slice(0, 60), yetiskin: n("yetiskin"), yasli: n("yasli"), bebek: n("bebek"), cocuk: n("cocuk"),
+    engel: b("engel"), ilac: b("ilac"), hayvan: b("hayvan"), arac: b("arac"), yapi: $("yapi").value, kat: parseInt($("kat").value || "0", 10), toplamkat: parseInt($("toplamkat").value || "1", 10),
+    catlak: b("catlak"), dask: b("dask"), dere: b("dere"), bodrum: b("bodrum"), orman: b("orman"), yamac: b("yamac"),
+    hazards: [...document.querySelectorAll('input[name="hz"]:checked')].map((x) => x.value) };
+}
+$("sample").onclick = () => {
+  Object.entries({ il: "İstanbul", ilce: "Sarıyer, Ayazağa", yetiskin: 2, yasli: 1, bebek: 1, cocuk: 0, yapi: "lt2000", kat: 0, toplamkat: 4 }).forEach(([k, v]) => ($(k).value = v));
+  Object.entries({ engel: false, ilac: true, hayvan: true, arac: true, catlak: false, dask: false, dere: true, bodrum: true, orman: false, yamac: false }).forEach(([k, v]) => ($(k).checked = v));
+  document.querySelectorAll('input[name="hz"]').forEach((x) => (x.checked = ["deprem", "sel", "sicak"].includes(x.value)));
+  $("form").requestSubmit();
+};
+
+/* ================= plan çizimi ================= */
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let busy = false;
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (busy) return;
+  const h = readForm();
+  if (h.yetiskin + h.yasli + h.bebek + h.cocuk === 0) { $("plan").innerHTML = `<div class="check warn">En az bir hane üyesi girin.</div>`; return; }
+  if (!h.hazards.length) { $("plan").innerHTML = `<div class="check warn">En az bir afet türü seçin.</div>`; return; }
+  busy = true; $("go").disabled = true;
+  const base = { oncelikler: rulePriorities(h) };
+  $("plan").innerHTML = `<div class="card"><div class="thinking">Kural motoru temel planı hazırladı; model haneye özel öncelikleri yazıyor</div></div>`;
+  $("plan").scrollIntoView({ behavior: "smooth", block: "start" });
+  let ai = null, aiErr = null, val = null;
+  try { ai = await askModel(buildPrompt(h), "default"); } catch (e) { aiErr = e.code || e.message; }
+  if (ai) {
+    $("plan").querySelector(".thinking").textContent = "Plan geldi; ikinci model çağrısı planı güvenlik kurallarına göre denetliyor";
+    try { val = await askModel(buildValidatorPrompt(h, ai), "quick"); } catch (e) { val = null; }
+  }
+  render(h, base, ai, aiErr, val);
+  busy = false; $("go").disabled = false;
+});
+
+function render(h, base, ai, aiErr, val) {
+  const issues = [];
+  const clean = (s) => { const r = sanitize(s); issues.push(...r.issues); return r.text; };
+  const bad = (s) => FORBIDDEN.some(([re]) => re.test(String(s)));
+  // öncelikler: kural motoru + YZ (tehlikeli olan atılır)
+  let pr = base.oncelikler.map((p) => ({ ...p, src: "rule" }));
+  if (ai && Array.isArray(ai.oncelikler)) {
+    const aiP = ai.oncelikler.filter((p) => p && p.baslik && !bad(p.baslik + " " + p.neden)).slice(0, 7).map((p) => ({ baslik: clean(p.baslik), neden: clean(p.neden || ""), ne_zaman: p.ne_zaman || "bu hafta", afet: p.afet || "genel", src: "ai" }));
+    const seen = new Set(aiP.map((p) => p.baslik.toLowerCase().slice(0, 18)));
+    pr = [...aiP, ...pr.filter((p) => !seen.has(p.baslik.toLowerCase().slice(0, 18)))];
+    ai.oncelikler.filter((p) => p && bad(p.baslik + " " + p.neden)).forEach((p) => issues.push("tehlikeli öneri gizlendi: " + p.baslik));
+  }
+  const order = { "bugün": 0, "bu hafta": 1, "bu ay": 2 };
+  pr.sort((a, b) => (order[a.ne_zaman] ?? 1) - (order[b.ne_zaman] ?? 1));
+  pr = pr.slice(0, 9);
+
+  const tag = ai ? `<span class="pill ai">YZ ile kişiselleştirildi</span>` : `<span class="pill rule">Kural tabanlı temel plan</span>`;
+  const why = !ai ? `<div class="check warn">${aiErr === "no_model" ? "Model bağlı değil (Gemini anahtarı girilmedi)." : aiErr === "not_granted" ? "Claude'u kullanma izni verilmedi." : "Model şu an yanıt vermedi (" + esc(aiErr) + ")."} Aşağıdaki plan uygulamanın kural motorundan geldi: güvenli ama haneye daha az özel.</div>` : "";
+  let html = `<div class="card"><div class="pl-head"><h2 style="margin:0">Planınız</h2>${tag}<span class="mode">${esc(h.il)}${h.ilce ? " · " + esc(h.ilce) : ""} · ${h.yetiskin + h.yasli + h.bebek + h.cocuk} kişi</span></div>${why}`;
+  if (ai && ai.ozet) html += `<p style="font-size:1.05rem;max-width:72ch">${esc(clean(ai.ozet))}</p>`;
+  html += `<h3>Öncelikli işler</h3><ol class="prio">${pr.map((p) => `<li><b>${esc(p.baslik)}</b><span class="when">${esc(p.ne_zaman)}</span>${p.src === "ai" ? ' <span class="pill ai" style="font-size:10px">YZ</span>' : ""}<small>${esc(p.neden)}</small></li>`).join("")}</ol>`;
+
+  // afet sekmeleri
+  html += `<h3>Afete göre ne yapacaksınız?</h3><div class="tabs" id="tabs">${h.hazards.map((k, i) => `<button type="button" data-k="${k}" style="--hc:${HAZ[k].c}" class="${i ? "" : "on"}">${HAZ[k].ad}</button>`).join("")}</div><div id="tabBody"></div>`;
+
+  // hane özel
+  const ho = ai && Array.isArray(ai.hane_ozel) ? ai.hane_ozel.filter((x) => x && x.oneri && !bad(x.oneri)) : [];
+  const fallbackHo = [];
+  if (h.yasli) fallbackHo.push({ kisi: `65+ (${h.yasli} kişi)`, oneri: "Gözlük, işitme cihazı ve ilaç listesini çantaya koyun; tahliyede kimin yardım edeceğini belirleyin." });
+  if (h.bebek) fallbackHo.push({ kisi: `Bebek (${h.bebek})`, oneri: "Mama, biberon ve bezi ayrı bir çantada, kolay alınır yerde tutun; bebeği taşıma için kanguru / sling hazırlayın." });
+  if (h.cocuk) fallbackHo.push({ kisi: `Çocuk (${h.cocuk})`, oneri: "Çocuğa Çök-Kapan-Tutun'u oyunla öğretin; okulun afet planını ve buluşma noktasını öğrenin." });
+  if (h.engel) fallbackHo.push({ kisi: "Hareket kısıtlı birey", oneri: "Yatak ya da koltuğunu pencereden ve devrilecek eşyadan uzak yere alın; komşularla taşıma planı yapın." });
+  if (h.hayvan) fallbackHo.push({ kisi: "Evcil hayvan", oneri: "Taşıma kafesini hazır tutun; toplanma alanına tasmalı götürün." });
+  const hoAll = (ho.length ? ho : fallbackHo);
+  if (hoAll.length) html += `<h3>Hanenizdeki kişilere özel</h3><ul>${hoAll.map((x) => `<li><b>${esc(clean(x.kisi))}:</b> ${esc(clean(x.oneri))}</li>`).join("")}</ul>`;
+
+  const ip = ai && Array.isArray(ai.iletisim_plani) && ai.iletisim_plani.length ? ai.iletisim_plani.filter((x) => !bad(x)).map(clean) : ["İl dışındaki bir yakını herkesin haber vereceği tek kişi olarak belirleyin.", "Evin yakınında bir, mahalle dışında bir buluşma noktası seçin.", "Telefon hatları dolarsa kısa mesaj kullanın; sesli aramayı 112 için bırakın."];
+  html += `<h3>Aile iletişim planı</h3><ul>${ip.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+
+  // çanta
+  const bag = bagList(h);
+  const add = ai && Array.isArray(ai.canta_ek) ? ai.canta_ek.filter((x) => x && x.esya && !bad(x.esya)).slice(0, 6) : [];
+  html += `<h3>Acil durum çantası (miktarlar hanenize göre hesaplandı)</h3><div class="scroll"><table class="bag"><tr><th>Malzeme</th><th>Miktar</th><th>Not</th></tr>${bag.map(([a, b, c]) => `<tr><td>${esc(a)}</td><td class="q">${esc(b)}</td><td>${esc(c)}</td></tr>`).join("")}${add.map((x) => `<tr class="add"><td>${esc(clean(x.esya))}</td><td class="q">—</td><td>${esc(clean(x.neden || ""))}</td></tr>`).join("")}</table></div>`;
+
+  // belirsizlik + denetim
+  const bel = ai && Array.isArray(ai.belirsizlikler) ? ai.belirsizlikler.map(clean) : [];
+  if (bel.length) html += `<h3>Modelin bilmediği / varsaydığı şeyler</h3><ul>${bel.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  const vs = val && Array.isArray(val.sorunlar) ? val.sorunlar : null;
+  html += `<h3>Güvenlik denetimi</h3>`;
+  html += issues.length ? `<div class="check warn"><b>Kural denetçisi ${issues.length} sorun yakaladı ve düzeltti:</b><ul>${[...new Set(issues)].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : `<div class="check"><span class="pill ok">✓</span> Kural denetçisi tehlikeli ifade ya da doğrulanmamış numara bulmadı.</div>`;
+  if (ai) html += vs ? (vs.length ? `<div class="check warn"><b>YZ denetçisinin notları</b> (${esc(val.genel || "")}):<ul>${vs.map((s) => `<li><b>${esc(s.ciddiyet)}</b> · ${esc(clean(s.madde))} — ${esc(clean(s.neden))}</li>`).join("")}</ul></div>` : `<div class="check"><span class="pill ok">✓</span> YZ denetçisi sorun bulmadı. ${esc(val.genel || "")}</div>`) : `<div class="notice">İkinci denetim çağrısı tamamlanamadı; yalnız kural denetçisi çalıştı.</div>`;
+  if (ai) html += `<details><summary>Modelin ham çıktısı (şeffaflık için)</summary><div><div class="raw">${esc(JSON.stringify(ai, null, 2))}</div></div></details>`;
+  html += `<p class="notice">Bu plan bilgilendirme amaçlıdır, resmî uyarıların yerine geçmez. Acil durumda 112'yi arayın.</p></div>`;
+  $("plan").innerHTML = html;
+
+  const showTab = (k) => {
+    document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
+    const base = HAZ[k], aiH = ai && ai.afetler && ai.afetler[k] ? ai.afetler[k] : {};
+    const col = (ph, title) => {
+      const extra = (Array.isArray(aiH[ph]) ? aiH[ph] : []).filter((x) => x && !bad(x)).slice(0, 3).map(clean);
+      return `<div style="--hc:${base.c}"><h4>${title}</h4><ul>${extra.map((x) => `<li><b>${esc(x)}</b> <span class="pill ai" style="font-size:10px">haneye özel</span></li>`).join("")}${base[ph].map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
+    };
+    $("tabBody").innerHTML = `<div class="phases">${col("once", "Önce")}${col("sirasinda", "Sırasında")}${col("sonra", "Sonra")}</div>`;
+  };
+  document.querySelectorAll("#tabs button").forEach((b) => (b.onclick = () => showTab(b.dataset.k)));
+  showTab(h.hazards[0]);
+}
+
+/* ================= geçmiş afetler + kayıp hesabı ================= */
+const EVENTS = [
+  { id: "istanbul26", haz: "sel", tarih: "14–15 Ekim 2026", ad: "İstanbul–Kocaeli seli", yer: "İstanbul (Sarıyer-Ayazağa, Pendik), Kocaeli",
+    kayip: { olu: 6, not: "3.055 kişi mahsur kaldığı yerden kurtarıldı; 6 ilde okullar tatil edildi" },
+    mekanizma: [
+      { ad: "Sular altındaki yolda yürürken düşüp boğulma", olu: 1, adr: true, etki: "akan suya girme", },
+      { ad: "Su birikintisinde elektrik akımına kapılma (14 yaşında çocuk)", olu: 1, adr: true, etki: "elektrikli donatıdan uzak durma" },
+      { ad: "Taşan Ayazağa Deresi'nde sürüklenme / köprü altında bulunma", olu: 3, adr: true, etki: "dere yatağı ve köprü altından uzaklaşma, uyarıda rota değiştirme" },
+      { ad: "Aracıyla sel sularına kapılma (Pendik)", olu: 1, adr: true, etki: "selli yola araçla girmeme" },
+    ],
+    eff: [0.3, 0.6], effNot: "Davranış uyarılarının etkisi için ABD'de 'Turn Around, Don't Drown' kampanyası gibi örnekler var; etkisi tartışmalı, bu yüzden aralık geniş tutuldu. Ölümlerin oluş biçimleri tek tek bilinen davranışlarla ilgili.",
+    src: [["BirGün", "https://www.birgun.net/haber/istanbul-daki-sel-felaketinde-can-kaybi-6-ya-yukseldi-741047"], ["ANKA – Vali Gül açıklaması", "https://ankahaber.net/haber/istanbul-valisi-gul-ayazaga-daki-selde-5-kisi-hayatini-kaybetti-2-kisi-henuz-bulunamadi-d6541fdd"], ["Karar", "https://www.karar.com/guncel-haberler/istanbuldaki-sel-felaketinden-aci-haber-ayazagada-34-yasindaki-kisi-2078460"], ["Memurlar.net", "https://www.memurlar.net/haber/1181398/ayazaga-da-sel-sonrasi-5-gun-1-kisinin-daha-cesedine-ulasildi.html"]],
+    uyari: "Rakamlar olayın üzerinden birkaç gün geçmişken haberlerde 4, 5 ve 6 arasında değişti; burada en güncel toplam (6) kullanıldı. Kayıp aramaları sürüyorsa sayı değişebilir." },
+  { id: "silivri25", haz: "deprem", tarih: "23 Nisan 2025", ad: "İstanbul (Silivri açıkları) M6.2 depremi", yer: "İstanbul",
+    kayip: { olu: 0, yarali: 151, not: "can kaybı yok; yaralanmaların tamamı panikle kendini dışarı atma sonucu (İstanbul Valiliği)" },
+    mekanizma: [{ ad: "Panikle pencereden / yüksekten kendini dışarı atma", yarali: 151, adr: true, etki: "sarsıntıda Çök-Kapan-Tutun, dışarı kaçmama" }],
+    eff: [0.3, 0.7], effNot: "Yaralanmaların tamamı tek bir davranıştan kaynaklandı; tatbikat yapılmış hanelerde panik davranışı belirgin biçimde azalır. Kesin etki ölçülemediği için %30–70 aralığı kullanıldı.",
+    src: [["Yetkin Report (Valilik açıklaması)", "https://yetkinreport.com/2025/04/23/marmarada-siddetli-deprem-istanbul-sallandi-neyse-ki-can-kaybi-yok/"], ["İTÜ hızlı değerlendirme", "https://mines.itu.edu.tr/en/home/2025/07/09/a-rapid-assessment-following-the-23-april-2025-mw6.2-silivri-earthquake-nearby-i-stanbul"]] },
+  { id: "sindirgi25", haz: "deprem", tarih: "10 Ağustos ve 27 Ekim 2025", ad: "Balıkesir Sındırgı M6.1 depremleri", yer: "Balıkesir",
+    kayip: { olu: 1, yarali: 55, not: "Ağustos: 1 ölü, 29 yaralı · Ekim: 4 bina yıkıldı, 26 hafif yaralı, ölüm yok" },
+    mekanizma: [{ ad: "Ağustos depreminde bina çökmesi (1 ölü)", olu: 1, adr: false, etki: "yapısal; hazırlık uygulaması önleyemez" }, { ad: "Ekim'de yıkılan binalar Ağustos'ta hasar görüp boşaltılmıştı", olu: 0, adr: false, etki: "'hasarlı binaya girme' kuralı burada can kurtardı" }],
+    eff: [0, 0], effNot: "Bu olay bir başarı örneği: ilk depremden sonra hasarlı binaların boşaltılması, ikinci depremde can kaybını önledi. HazırOl'un 'hasarlı binaya geri girmeyin' kuralı tam olarak bu davranış.",
+    src: [["Cumhuriyet (Bakan Yerlikaya)", "https://www.cumhuriyet.com.tr/turkiye/son-dakika-balikesir-sindirgi-da-son-durum-ne-ali-yerlikaya-dan-deprem-bolgesinde-aciklama-4-bina-yikildi-26-kisi-hafif-yaralandi-2447652"], ["TGRT Haber", "https://www.tgrthaber.com/aktuel/sindirgi-depreminde-olu-ya-da-yarali-var-mi-yikilan-binalar-oldugu-ogrenildi-3259395"]] },
+  { id: "seyitgazi25", haz: "yangin", tarih: "22 Temmuz 2025 · 2025 sezonu", ad: "Eskişehir Seyitgazi yangını ve 2025 orman yangınları", yer: "Eskişehir; Türkiye geneli",
+    kayip: { olu: 10, ha: 81473, not: "Seyitgazi'de 5 orman işçisi ve 5 AKUT gönüllüsü hayatını kaybetti; 2025'te 3.224 yangında 81.473 ha yandı" },
+    mekanizma: [{ ad: "Rüzgârın döndüğü anda alevler arasında kalan yangın ekipleri", olu: 10, adr: false, etki: "müdahale ekibi güvenliği; hane uygulamasının kapsamı dışında" }, { ad: "İnsan kaynaklı yangınlar (nedeni bilinenlerin ~%90'ı) → yanan alan", ha: 81473 * 0.9, adr: true, etki: "riskli günlerde ateş, anız yakma, cam/sigara atmama", haOnly: true }],
+    eff: [0.02, 0.08], effNot: "Hane uygulaması yangın çıkışını ancak çok sınırlı azaltabilir; bu yüzden insan kaynaklı yangınların yanan alanı için yalnız %2–8 azalma varsayıldı. Bu oran kanıtlanmış değil, temsili bir aralık.",
+    src: [["Haberler.com (OGM verisi)", "https://www.haberler.com/guncel/yangin-riski-yalnizca-ege-ve-akdeniz-le-sinirli-20118520-haberi/"], ["TBMM soru önergesi", "https://cdn.tbmm.gov.tr/KKBSPublicFile/D28/Y4/T7/WebOnergeMetni/33c9b02d-8862-44d0-b345-1de51caba3b5.pdf"], ["Medyascope (Seyitgazi)", "https://medyascope.tv/2025/07/23/eskisehirdeki-yanginda-10-orman-iscisi-hayatini-kaybetti/"], ["BirGün", "https://www.birgun.net/haber/10-forest-workers-die-trapped-by-flames-while-fighting-wildfire-in-eskisehir-640651"]] },
+  { id: "kahramanmaras23", haz: "deprem", tarih: "6 Şubat 2023", ad: "Kahramanmaraş merkezli depremler", yer: "11 il",
+    kayip: { olu: 53537, yarali: 107213, usd: 103.6, not: "SBB tahmini toplam maliyet ~103,6 milyar $ (≈2 trilyon TL); TEPAV ~150 milyar $" },
+    mekanizma: [
+      { ad: "Bina çökmesi kaynaklı ölümler", olu: 53537, adr: false, etki: "yapı denetimi ve kentsel dönüşüm; uygulama yalnız performans analizine yönlendirebilir" },
+      { ad: "Yapısal olmayan nedenlerle yaralanma (eşya devrilmesi, düşme; 1999 İzmit'te yaralanmaların ~%50'si)", yarali: Math.round(107213 * 0.5), adr: true, etki: "eşya sabitleme, Çök-Kapan-Tutun" },
+    ],
+    eff: [0.1, 0.3], effNot: "Ölümlerin neredeyse tamamı bina çökmesinden; hazırlık uygulaması bunu önleyemez ve hesaba katılmadı. Yaralanmaların yaklaşık yarısının yapısal olmayan nedenlerden olduğu varsayıldı (1999 İzmit için Boğaziçi Üniversitesi bulgusu); eşya sabitlemenin bunları %10–30 azaltacağı varsayıldı.",
+    src: [["SBB raporu özeti", "https://raporbulteni.substack.com/p/47-sbb-2023-kahramanmaras-ve-hatay"], ["Bloomberg HT (TEPAV)", "https://www.bloomberght.com/tepav-6-subat-depremlerinin-maliyeti-104-milyar-dolar-2347078"], ["ReliefWeb: Türkiye'de yapısal olmayan önlemler", "https://m.reliefweb.int/report/3678937/turkey/case-study-non-structural-mitigation-turkey"]],
+    uyari: "Resmî can kaybı kaynaklarda 53.537 ve 53.737 olarak iki farklı biçimde geçiyor; burada 53.537 kullanıldı." },
+];
+const st = { ev: "istanbul26", adopt: 25, effPos: 50 };
+function evCard(e) {
+  const c = HAZ[e.haz].c, k = e.kayip;
+  const nums = [k.olu != null ? `<span><b>${k.olu.toLocaleString("tr")}</b> can kaybı</span>` : "", k.yarali ? `<span><b>${k.yarali.toLocaleString("tr")}</b> yaralı</span>` : "", k.ha ? `<span><b>${k.ha.toLocaleString("tr")}</b> ha</span>` : "", k.usd ? `<span><b>${k.usd.toLocaleString("tr")} mlr $</b></span>` : ""].join("");
+  return `<button type="button" class="ev${st.ev === e.id ? " on" : ""}" style="--hc:${c}" data-id="${e.id}"><div><span class="tag">${HAZ[e.haz].ad}</span><div class="d" style="margin-top:6px">${e.tarih}</div></div><div><div class="t">${e.ad}</div><div class="n">${nums}</div><div style="color:var(--ink-3);font-size:.9rem">${k.not}</div></div></button>`;
+}
+function drawEvents() {
+  $("events").innerHTML = EVENTS.map(evCard).join("");
+  document.querySelectorAll(".ev").forEach((b) => (b.onclick = () => { st.ev = b.dataset.id; drawEvents(); drawCalc(); }));
+}
+function drawCalc() {
+  const e = EVENTS.find((x) => x.id === st.ev);
+  const A = st.adopt / 100, [lo, hi] = e.eff, eff = lo + (hi - lo) * (st.effPos / 100);
+  const rows = e.mekanizma.map((m) => {
+    const base = m.olu || m.yarali || m.ha || 0, unit = m.haOnly || m.ha ? "ha" : m.olu ? "can" : "yaralı";
+    const prevLo = m.adr ? base * A * lo : 0, prevHi = m.adr ? base * A * hi : 0, prev = m.adr ? base * A * eff : 0;
+    return { m, base, unit, prev, prevLo, prevHi };
+  });
+  const sum = (u, k) => rows.filter((r) => r.unit === u).reduce((s, r) => s + r[k], 0);
+  const units = [...new Set(rows.filter((r) => r.m.adr).map((r) => r.unit))];
+  const fmtN = (x, u) => (u === "ha" ? Math.round(x).toLocaleString("tr") : x < 10 ? x.toFixed(1).replace(".", ",") : Math.round(x).toLocaleString("tr"));
+  const headline = units.length ? units.map((u) => `<div style="margin:6px 0"><div class="big">${fmtN(sum(u, "prev"), u)} ${u}</div><div class="src">aralık: ${fmtN(sum(u, "prevLo"), u)} – ${fmtN(sum(u, "prevHi"), u)} ${u} (aynı benimseme oranında, en düşük ve en yüksek etki)</div></div>`).join("") : `<div class="big" style="color:var(--teal)">0</div><div class="src">Bu olayda kaybın tamamı hazırlık uygulamasının etki alanı dışında.</div>`;
+  const maxBase = Math.max(...rows.map((r) => r.base), 1);
+  $("calc").innerHTML = `
+  <div>
+    <div class="lab">Seçili olay</div>
+    <h3 style="margin:.2em 0 .1em">${e.ad}</h3>
+    <div class="src">${e.tarih} · ${e.yer}</div>
+    <div class="slider"><div class="row"><label for="adopt">Uygulamayı kullanıp önerilere uyan hane oranı</label><output id="adoptV">%${st.adopt}</output></div><input type="range" id="adopt" min="0" max="100" step="5" value="${st.adopt}"></div>
+    <div class="slider"><div class="row"><label for="effPos">Önerinin davranışı değiştirme etkisi</label><output id="effV">%${Math.round(eff * 100)}</output></div><input type="range" id="effPos" min="0" max="100" value="${st.effPos}" ${lo === hi ? "disabled" : ""}><div class="src">aralık %${Math.round(lo * 100)}–%${Math.round(hi * 100)}: ${e.effNot}</div></div>
+    <div class="lab" style="margin-top:14px">Önlenebilir kayıp tahmini</div>${headline}
+    <p class="src" style="margin-top:10px">Formül: önlenebilir = (davranışa bağlı kayıp) × (benimseme oranı) × (etki). Bina çökmesi gibi yapısal nedenler hesaba katılmaz.</p>
+  </div>
+  <div>
+    <div class="lab">Kayıp nedenlerine göre</div>
+    <div class="scroll"><table class="mech"><tr><th>Neden</th><th>Kayıp</th><th>Uygulama etkiler mi?</th><th style="text-align:right">Önlenebilir</th></tr>
+    ${rows.map((r) => `<tr><td>${r.m.ad}<div class="bar" style="margin-top:5px"><i style="width:${(r.base / maxBase) * 100}%"></i><i class="lo" style="width:${(r.prev / maxBase) * 100}%"></i></div></td><td class="num">${fmtN(r.base, r.unit)} ${r.unit}</td><td>${r.m.adr ? `<span class="pill ok">evet</span> ${r.m.etki}` : `<span class="pill bad">hayır</span> ${r.m.etki}`}</td><td class="num">${r.m.adr ? fmtN(r.prev, r.unit) : "—"}</td></tr>`).join("")}
+    </table></div>
+    ${e.uyari ? `<p class="src">⚠ ${e.uyari}</p>` : ""}
+    <p class="src">Kaynaklar: ${e.src.map(([t, u]) => `<a href="${u}" target="_blank" rel="noopener">${t}</a>`).join(" · ")}</p>
+    <p class="src">Erken uyarının genel etkisi için: Global Commission on Adaptation (2019), bir fırtına ya da sıcak dalgasından 24 saat önce uyarı verilmesinin hasarı ~%30 azaltabileceğini tahmin ediyor.</p>
+  </div>`;
+  $("adopt").oninput = (ev) => { st.adopt = +ev.target.value; drawCalc(); $("adopt").focus(); };
+  $("effPos").oninput = (ev) => { st.effPos = +ev.target.value; drawCalc(); $("effPos").focus(); };
+}
+document.querySelectorAll("[data-ev]").forEach((a) => a.addEventListener("click", () => { st.ev = a.dataset.ev; drawEvents(); drawCalc(); }));
+
+/* prompt görünümü (örnek hane) */
+const demoH = { il: "İstanbul", ilce: "Sarıyer, Ayazağa", yetiskin: 2, yasli: 1, bebek: 1, cocuk: 0, engel: false, ilac: true, hayvan: true, arac: true, yapi: "lt2000", kat: 0, toplamkat: 4, catlak: false, dask: false, dere: true, bodrum: true, orman: false, yamac: false, hazards: ["deprem", "sel", "sicak"] };
+$("promptView").textContent = buildPrompt(demoH);
+$("valView").textContent = buildValidatorPrompt(demoH, { "...": "modelin ürettiği plan JSON'u" });
+
+/* tema */
+$("themeBtn").onclick = () => {
+  const r = document.documentElement, cur = r.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  r.dataset.theme = cur === "dark" ? "light" : "dark";
+};
+
+drawEvents(); drawCalc(); initModel();
+</script>
+
+</body>
+</html>
