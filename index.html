@@ -631,8 +631,11 @@ function drawCalc() {
   });
   const sum = (u, k) => rows.filter((r) => r.unit === u).reduce((s, r) => s + r[k], 0);
   const units = [...new Set(rows.filter((r) => r.m.adr).map((r) => r.unit))];
-  const fmtN = (x, u) => (u === "ha" ? Math.round(x).toLocaleString("tr") : x < 10 ? x.toFixed(1).replace(".", ",") : Math.round(x).toLocaleString("tr"));
-  const headline = units.length ? units.map((u) => `<div style="margin:6px 0"><div class="big">${fmtN(sum(u, "prev"), u)} ${u}</div><div class="src">aralık: ${fmtN(sum(u, "prevLo"), u)} – ${fmtN(sum(u, "prevHi"), u)} ${u} (aynı benimseme oranında, en düşük ve en yüksek etki)</div></div>`).join("") : `<div class="big" style="color:var(--teal)">0</div><div class="src">Bu olayda kaybın tamamı hazırlık uygulamasının etki alanı dışında.</div>`;
+  const fmtN = (x, u) => (u === "can" && x < 10 ? x.toFixed(1).replace(".", ",") : Math.round(x).toLocaleString("tr"));
+  const lifeTxt = (v) => (v < 0.5 ? "1'den az" : "~" + Math.round(v));
+  const headline = units.length ? units.map((u) => u === "can"
+    ? `<div style="margin:6px 0"><div class="big">${lifeTxt(sum(u, "prev"))} can</div><div class="src">İstatistiksel beklenen değer ${fmtN(sum(u, "prev"), u)} (aralık ${fmtN(sum(u, "prevLo"), u)} – ${fmtN(sum(u, "prevHi"), u)}). Bir can bölünemez; bu sayı, <b>bu tür 10 olayda yaklaşık ${Math.round(sum(u, "prev") * 10)} canın</b> kurtarılabileceği anlamına gelir.</div></div>`
+    : `<div style="margin:6px 0"><div class="big">${fmtN(sum(u, "prev"), u)} ${u}</div><div class="src">aralık: ${fmtN(sum(u, "prevLo"), u)} – ${fmtN(sum(u, "prevHi"), u)} ${u} (aynı benimseme oranında, en düşük ve en yüksek etki)</div></div>`).join("") : `<div class="big" style="color:var(--teal)">0</div><div class="src">Bu olayda kaybın tamamı hazırlık uygulamasının etki alanı dışında.</div>`;
   const maxBase = Math.max(...rows.map((r) => r.base), 1);
   $("calc").innerHTML = `
   <div>
@@ -646,7 +649,7 @@ function drawCalc() {
   </div>
   <div>
     <div class="lab">Kayıp nedenlerine göre</div>
-    <div class="scroll"><table class="mech"><tr><th>Neden</th><th>Kayıp</th><th>Uygulama etkiler mi?</th><th style="text-align:right">Önlenebilir</th></tr>
+    <div class="scroll"><table class="mech"><tr><th>Neden</th><th>Kayıp</th><th>Uygulama etkiler mi?</th><th style="text-align:right">Önlenebilir (beklenen)</th></tr>
     ${rows.map((r) => `<tr><td>${r.m.ad}<div class="bar" style="margin-top:5px"><i style="width:${(r.base / maxBase) * 100}%"></i><i class="lo" style="width:${(r.prev / maxBase) * 100}%"></i></div></td><td class="num">${fmtN(r.base, r.unit)} ${r.unit}</td><td>${r.m.adr ? `<span class="pill ok">evet</span> ${r.m.etki}` : `<span class="pill bad">hayır</span> ${r.m.etki}`}</td><td class="num">${r.m.adr ? fmtN(r.prev, r.unit) : "—"}</td></tr>`).join("")}
     </table></div>
     ${e.uyari ? `<p class="src">⚠ ${e.uyari}</p>` : ""}

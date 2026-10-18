@@ -73,11 +73,11 @@ For each event, the loss is split by **cause**. Only causes a household can chan
 preventable = behavioural loss × adoption rate × behaviour-change effect
 ```
 
-Both factors are sliders. With the defaults (25% adoption, mid-point effect):
+Both factors are sliders. With the defaults (25% adoption, mid-point effect). Results are expected values; a fraction of a life means, for example, 0.7 = about 7 lives across 10 similar events, so the app shows lives as a whole number with the expected value beside it:
 
 | Event | Behavioural loss counted | Estimated preventable |
 |---|---|---|
-| İstanbul–Kocaeli flood, Oct 2026 | 6 deaths (all behavioural) | **~0.7 lives** (0.5–0.9) |
+| İstanbul–Kocaeli flood, Oct 2026 | 6 deaths (all behavioural) | **~1 life** (expected value 0.7, range 0.5–0.9: about 7 lives per 10 similar floods) |
 | Silivri M6.2, Apr 2025 | 151 injuries from jumping | **~19 injuries** (11–26) |
 | Sındırgı M6.1, Aug & Oct 2025 | none (structural) | **0** |
 | 2025 wildfires | human-caused share of 81,473 ha | **~917 ha** (367–1,467) |
