@@ -1,6 +1,6 @@
 # HazırOl — Household Disaster Preparedness Assistant
 
-**Live demo:** https://aybkc.github.io/hazirol/
+**Live demo:** https://aybkc.github.io/hazirol/en/ (English) · https://aybkc.github.io/hazirol/ (Türkçe)
 
 HazırOl ("Be Ready") is a generative-AI assistant that turns a short description of a household into a **personalised disaster plan** and a **quantity-calculated emergency bag list** for the natural hazards Türkiye actually faces: earthquake, flood, wildfire, landslide and extreme heat.
 
@@ -117,6 +117,7 @@ Click **"Örnek hane: Ayazağa"** to load a sample household, optionally paste a
 
 ```
 index.html   the whole app (HTML + CSS + JS, no dependencies besides Google Fonts)
+en/index.html  the same app in English (English UI, prompts and safety patterns)
 prompts.md   full prompt texts and design notes
 README.md    this file
 ```

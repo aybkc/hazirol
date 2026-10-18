@@ -52,6 +52,8 @@ header.top{display:flex;align-items:center;gap:14px;padding:22px 0 8px;flex-wrap
 .sdg{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
 .sdg span{font:600 12px var(--mono);padding:3px 9px;border-radius:99px;border:1px solid var(--line);background:var(--panel)}
 .sdg span.s11{border-color:#f99d26;color:#b06a0e} .sdg span.s13{border-color:#3f7e44;color:#3f7e44}
+.sdg a.lang{font:600 12px var(--mono);padding:3px 9px;border-radius:99px;border:1px solid var(--accent);color:var(--accent);background:var(--panel);text-decoration:none}
+.sdg a.lang:hover{background:var(--accent-soft)}
 .hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;align-items:end;padding:18px 0 8px}
 .hero h1{font-size:clamp(2.1rem,5.4vw,3.6rem);font-weight:900;margin:.1em 0 .25em}
 .hero h1 em{font-style:normal;color:var(--accent)}
@@ -166,7 +168,7 @@ footer{margin-top:40px;font-size:.85rem;color:var(--ink-3);border-top:1px solid 
 <header class="top">
   <svg class="logo" viewBox="0 0 48 48" aria-hidden="true"><rect x="2" y="2" width="44" height="44" rx="10" fill="var(--accent)"/><path d="M10 31 L18 23 L24 28 L32 17 L38 23" fill="none" stroke="var(--accent-ink)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 36 H34" stroke="var(--accent-ink)" stroke-width="3.4" stroke-linecap="round"/></svg>
   <div class="brand">Hazır<span>Ol</span></div>
-  <div class="sdg"><span class="s11">SDG 11.5 · afet kayıplarını azalt</span><span class="s13">SDG 13.1 · iklim afetlerine dayanıklılık</span></div>
+  <div class="sdg"><span class="s11">SDG 11.5 · afet kayıplarını azalt</span><span class="s13">SDG 13.1 · iklim afetlerine dayanıklılık</span><a class="lang" href="en/" hreflang="en" lang="en" title="English">EN</a></div>
 </header>
 
 <section class="hero">
@@ -332,9 +334,9 @@ function rulePriorities(h) {
 
 /* ================= güvenlik denetçisi ================= */
 const FORBIDDEN = [
-  [/balkon(a|dan)?\s*(çık|kaç|atla)/i, "deprem sırasında balkona çıkma / atlama"],
-  [/(pencere|cam)(den|dan)\s*(atla|kaç)/i, "pencereden atlama"],
-  [/kendini(zi)?\s*dışarı\s*at/i, "kendini dışarı atma"],
+  [/balkon(a|dan)?\s*(çık|kaç|atla)(?!ma|me)/i, "deprem sırasında balkona çıkma / atlama"],
+  [/(pencere|cam)(den|dan)\s*(atla|kaç)(?!ma|me)/i, "pencereden atlama"],
+  [/kendini(zi)?\s*dışarı\s*at(?!ma)/i, "kendini dışarı atma"],
   [/(deprem|sarsıntı)[^.]{0,40}asansör(ü)?\s*kullan(ın|abilirsiniz)/i, "deprem sırasında asansör"],
   [/kapı\s*(kasası|eşiği)(nın)?\s*(altına|altında)/i, "kapı eşiği altına sığınma (güncel öneri değil)"],
   [/(su basmış|selli|sular altındaki)\s*(yol|alt geçit)[^.]{0,30}(geç|gir)(in|ebilirsiniz)(?![^.]{0,10}me)/i, "selli yoldan geçme"],
