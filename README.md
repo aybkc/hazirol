@@ -82,6 +82,10 @@ Both factors are sliders. With the defaults (25% adoption, mid-point effect). Re
 | Sındırgı M6.1, Aug & Oct 2025 | none (structural) | **0** |
 | 2025 wildfires | human-caused share of 81,473 ha | **~917 ha** (367–1,467) |
 | Kahramanmaraş, Feb 2023 | ~50% of injuries non-structural | **~2,680 injuries** (1,340–4,021) |
+| Rize Çayeli landslide, Nov 2024 | none (1 death while asleep, site/structural) | **0** |
+| Manavgat wildfire, Jul–Aug 2021 | 6 civilian deaths at home or fleeing late | **fewer than 1 life** (expected 0.5) |
+| İzmir M6.6, Oct 2020 | 1 tsunami death (103+ in building collapses excluded) | **fewer than 1 life** (expected 0.01) |
+| İstanbul heat waves, 2015–2017 | 419 modelled excess deaths | **~21 lives** (10–31) |
 
 Building-collapse deaths are **deliberately excluded**: an app cannot make a building stronger. It can only point people to a licensed performance assessment.
 
