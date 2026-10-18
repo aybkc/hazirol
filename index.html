@@ -206,7 +206,7 @@ footer{margin-top:40px;font-size:.85rem;color:var(--ink-3);border-top:1px solid 
       <legend>Bina ve çevre</legend>
       <div class="grid2">
         <div class="f"><label for="yapi">Bina yapım yılı</label><select id="yapi"><option value="lt2000">2000'den önce</option><option value="2000-2018" selected>2000–2018</option><option value="gt2018">2019 ve sonrası</option><option value="bilinmiyor">Bilmiyorum</option></select></div>
-        <div class="f"><label for="kat">Oturduğunuz kat / toplam kat</label><div class="row" style="flex-wrap:nowrap"><input type="number" id="kat" min="-3" max="60" value="3" aria-label="Oturulan kat"><span>/</span><input type="number" id="toplamkat" min="1" max="60" value="6" aria-label="Toplam kat"></div></div>
+        <div class="f"><label for="kat">Oturduğunuz kat / toplam kat <small style="font-weight:400;color:var(--ink-3)">(0 = zemin, −1 = bodrum)</small></label><div class="row" style="flex-wrap:nowrap"><input type="number" id="kat" min="-3" max="60" value="3" aria-label="Oturulan kat"><span>/</span><input type="number" id="toplamkat" min="1" max="60" value="6" aria-label="Toplam kat"></div></div>
       </div>
       <div class="row" style="margin-top:10px">
         <label class="chk"><input type="checkbox" id="catlak"> Taşıyıcı elemanlarda çatlak / hasar görüyorum</label>
@@ -351,7 +351,7 @@ function sanitize(text) {
 }
 
 /* ================= prompt ================= */
-const FEWSHOT_IN = `il: Hatay · ilçe: Antakya · yetişkin 1, 65+ 2, bebek 0, çocuk 0 · hareket kısıtlı: evet · ilaç: evet · evcil hayvan: hayır · araç: hayır · bina: 2000 öncesi, 2/4. kat, çatlak: hayır, DASK: hayır · çevre: dere: hayır, bodrum: hayır, orman: hayır, yamaç: hayır · afetler: deprem, sicak`;
+const FEWSHOT_IN = `il: Hatay · ilçe: Antakya · yetişkin 1, 65+ 2, bebek 0, çocuk 0 · hareket kısıtlı: evet · ilaç: evet · evcil hayvan: hayır · araç: hayır · bina: 2000 öncesi, 2. kat (binada toplam 4 kat), çatlak: hayır, DASK: hayır · çevre: dere: hayır, bodrum: hayır, orman: hayır, yamaç: hayır · afetler: deprem, sicak`;
 const FEWSHOT_OUT = `{"ozet":"Tek yetişkinin iki yaşlıya baktığı, 2000 öncesi bir binada yaşayan hane. En büyük risk deprem anında hareket kısıtlı bireyin korunması ve binanın bilinmeyen dayanımı.","oncelikler":[{"baslik":"Binanız için lisanslı kuruluştan deprem performans analizi isteyin","neden":"2000 öncesi yapı; dayanımı bilinmiyor.","ne_zaman":"bu ay","afet":"deprem"},{"baslik":"Hareket kısıtlı annenizin yatağını pencereden uzak, devrilecek eşya olmayan duvara alın","neden":"Sarsıntıda yataktan kalkıp güvenli noktaya gidemeyebilir.","ne_zaman":"bugün","afet":"deprem"}],"afetler":{"deprem":{"once":["Yaşlıların yatak başına düdük ve el feneri asın."],"sirasinda":["Yatağındaki yaşlı yüz üstü dönüp başını yastıkla korusun; kaldırmaya çalışmayın."],"sonra":["Bir komşuyla 'kim kimi kontrol edecek' anlaşması yapın."]},"sicak":{"once":["Klimalı bir halk mekânının adresini öğrenin."],"sirasinda":["Yaşlılara saat başı su içirin."],"sonra":[]}},"hane_ozel":[{"kisi":"65+ (2 kişi)","oneri":"Kullandıkları ilaçların listesini ve dozlarını hekimden yazılı alıp çantaya koyun."}],"iletisim_plani":["İl dışındaki bir akrabayı herkesin arayacağı tek kişi olarak belirleyin."],"canta_ek":[{"esya":"Yetişkin bezi","neden":"hareket kısıtlı birey için"}],"belirsizlikler":["Binanın zemin sınıfını bilmiyoruz."]}`;
 
 function buildPrompt(h) {
@@ -411,7 +411,7 @@ Sorun yoksa "sorunlar" boş dizi olsun.`;
 function profileLine(h) {
   const yapi = { lt2000: "2000 öncesi", "2000-2018": "2000–2018", gt2018: "2019 ve sonrası", bilinmiyor: "bilinmiyor" }[h.yapi];
   const yn = (b) => (b ? "evet" : "hayır");
-  return `il: ${h.il}${h.ilce ? " · ilçe: " + h.ilce : ""} · yetişkin ${h.yetiskin}, 65+ ${h.yasli}, bebek ${h.bebek}, çocuk ${h.cocuk} · hareket kısıtlı: ${yn(h.engel)} · ilaç: ${yn(h.ilac)} · evcil hayvan: ${yn(h.hayvan)} · araç: ${yn(h.arac)} · bina: ${yapi}, ${h.kat}/${h.toplamkat}. kat, çatlak: ${yn(h.catlak)}, DASK: ${yn(h.dask)} · çevre: dere: ${yn(h.dere)}, bodrum: ${yn(h.bodrum)}, orman: ${yn(h.orman)}, yamaç: ${yn(h.yamac)} · afetler: ${h.hazards.join(", ")}`;
+  return `il: ${h.il}${h.ilce ? " · ilçe: " + h.ilce : ""} · yetişkin ${h.yetiskin}, 65+ ${h.yasli}, bebek ${h.bebek}, çocuk ${h.cocuk} · hareket kısıtlı: ${yn(h.engel)} · ilaç: ${yn(h.ilac)} · evcil hayvan: ${yn(h.hayvan)} · araç: ${yn(h.arac)} · bina: ${yapi}, ${h.kat === 0 ? "zemin kat" : h.kat < 0 ? "bodrum kat (" + h.kat + ")" : h.kat + ". kat"} (binada toplam ${h.toplamkat} kat), çatlak: ${yn(h.catlak)}, DASK: ${yn(h.dask)} · çevre: dere: ${yn(h.dere)}, bodrum: ${yn(h.bodrum)}, orman: ${yn(h.orman)}, yamaç: ${yn(h.yamac)} · afetler: ${h.hazards.join(", ")}`;
 }
 
 /* ================= model katmanı ================= */

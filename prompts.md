@@ -46,12 +46,12 @@ KISITLAR:
 Afet anahtarları: deprem, sel, yangin, heyelan, sicak.
 
 ÖRNEK GİRDİ:
-il: Hatay · ilçe: Antakya · yetişkin 1, 65+ 2, bebek 0, çocuk 0 · hareket kısıtlı: evet · ilaç: evet · evcil hayvan: hayır · araç: hayır · bina: 2000 öncesi, 2/4. kat, çatlak: hayır, DASK: hayır · çevre: dere: hayır, bodrum: hayır, orman: hayır, yamaç: hayır · afetler: deprem, sicak
+il: Hatay · ilçe: Antakya · yetişkin 1, 65+ 2, bebek 0, çocuk 0 · hareket kısıtlı: evet · ilaç: evet · evcil hayvan: hayır · araç: hayır · bina: 2000 öncesi, 2. kat (binada toplam 4 kat), çatlak: hayır, DASK: hayır · çevre: dere: hayır, bodrum: hayır, orman: hayır, yamaç: hayır · afetler: deprem, sicak
 ÖRNEK ÇIKTI:
 {"ozet":"Tek yetişkinin iki yaşlıya baktığı, 2000 öncesi bir binada yaşayan hane. En büyük risk deprem anında hareket kısıtlı bireyin korunması ve binanın bilinmeyen dayanımı.","oncelikler":[{"baslik":"Binanız için lisanslı kuruluştan deprem performans analizi isteyin","neden":"2000 öncesi yapı; dayanımı bilinmiyor.","ne_zaman":"bu ay","afet":"deprem"},{"baslik":"Hareket kısıtlı annenizin yatağını pencereden uzak, devrilecek eşya olmayan duvara alın","neden":"Sarsıntıda yataktan kalkıp güvenli noktaya gidemeyebilir.","ne_zaman":"bugün","afet":"deprem"}],"afetler":{"deprem":{"once":["Yaşlıların yatak başına düdük ve el feneri asın."],"sirasinda":["Yatağındaki yaşlı yüz üstü dönüp başını yastıkla korusun; kaldırmaya çalışmayın."],"sonra":["Bir komşuyla 'kim kimi kontrol edecek' anlaşması yapın."]},"sicak":{"once":["Klimalı bir halk mekânının adresini öğrenin."],"sirasinda":["Yaşlılara saat başı su içirin."],"sonra":[]}},"hane_ozel":[{"kisi":"65+ (2 kişi)","oneri":"Kullandıkları ilaçların listesini ve dozlarını hekimden yazılı alıp çantaya koyun."}],"iletisim_plani":["İl dışındaki bir akrabayı herkesin arayacağı tek kişi olarak belirleyin."],"canta_ek":[{"esya":"Yetişkin bezi","neden":"hareket kısıtlı birey için"}],"belirsizlikler":["Binanın zemin sınıfını bilmiyoruz."]}
 
 ŞİMDİ BU HANE:
-il: İstanbul · ilçe: Sarıyer, Ayazağa · yetişkin 2, 65+ 1, bebek 1, çocuk 0 · hareket kısıtlı: hayır · ilaç: evet · evcil hayvan: evet · araç: evet · bina: 2000 öncesi, 0/4. kat, çatlak: hayır, DASK: hayır · çevre: dere: evet, bodrum: evet, orman: hayır, yamaç: hayır · afetler: deprem, sel, sicak
+il: İstanbul · ilçe: Sarıyer, Ayazağa · yetişkin 2, 65+ 1, bebek 1, çocuk 0 · hareket kısıtlı: hayır · ilaç: evet · evcil hayvan: evet · araç: evet · bina: 2000 öncesi, zemin kat (binada toplam 4 kat), çatlak: hayır, DASK: hayır · çevre: dere: evet, bodrum: evet, orman: hayır, yamaç: hayır · afetler: deprem, sel, sicak
 ```
 
 ## 2. Validator prompt (feedback loop)
@@ -61,7 +61,7 @@ A second, **zero-shot** call audits the first output with a 5-point checklist: d
 ```text
 Sen bir afet güvenliği denetçisisin. Aşağıdaki plan bir YZ tarafından üretildi. Görevin planı AFAD'ın temel kurallarına göre denetlemek.
 
-Hane: il: İstanbul · ilçe: Sarıyer, Ayazağa · yetişkin 2, 65+ 1, bebek 1, çocuk 0 · hareket kısıtlı: hayır · ilaç: evet · evcil hayvan: evet · araç: evet · bina: 2000 öncesi, 0/4. kat, çatlak: hayır, DASK: hayır · çevre: dere: evet, bodrum: evet, orman: hayır, yamaç: hayır · afetler: deprem, sel, sicak
+Hane: il: İstanbul · ilçe: Sarıyer, Ayazağa · yetişkin 2, 65+ 1, bebek 1, çocuk 0 · hareket kısıtlı: hayır · ilaç: evet · evcil hayvan: evet · araç: evet · bina: 2000 öncesi, zemin kat (binada toplam 4 kat), çatlak: hayır, DASK: hayır · çevre: dere: evet, bodrum: evet, orman: hayır, yamaç: hayır · afetler: deprem, sel, sicak
 Plan (JSON): {"oncelikler":[{"is":"Örnek","neden":"x","ne_zaman":"bugün"}]}
 
 Kontrol listesi (her biri için düşün, sonra yalnız bulduğun sorunları yaz):
