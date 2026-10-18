@@ -106,6 +106,11 @@ input[type=number],input[type=text],select,textarea{background:var(--panel-2);bo
 .bag td,.bag th{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;vertical-align:top}
 .bag th{font:600 11.5px var(--mono);text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3)}
 .bag td.q{font:600 13px var(--mono);white-space:nowrap;font-variant-numeric:tabular-nums}
+.prio li.ai{border-left:4px solid var(--teal)}
+.diff{border:1px solid var(--teal);border-radius:12px;padding:12px 16px;margin:10px 0 4px;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center}
+.diff b.n{font:800 1.35rem var(--display,inherit);color:var(--teal)}
+.diff .lbl{font-weight:600;flex-basis:100%}
+.diff button{margin-left:auto}
 .bag tr.add td:first-child::after{content:" · YZ eki";font:600 10.5px var(--mono);color:var(--teal)}
 .scroll{overflow-x:auto}
 .check{border-left:3px solid var(--teal);background:var(--teal-soft);padding:10px 14px;border-radius:0 10px 10px 0;margin:12px 0}
@@ -482,7 +487,9 @@ $("form").addEventListener("submit", async (ev) => {
   busy = false; $("go").disabled = false;
 });
 
+let lastRender = null;
 function render(h, base, ai, aiErr, val) {
+  if (aiErr !== "compare") lastRender = [h, base, ai, aiErr, val];
   const issues = [];
   const clean = (s) => { const r = sanitize(s); issues.push(...r.issues); return r.text; };
   const bad = (s) => FORBIDDEN.some(([re]) => re.test(String(s)));
@@ -499,10 +506,17 @@ function render(h, base, ai, aiErr, val) {
   pr = pr.slice(0, 9);
 
   const tag = ai ? `<span class="pill ai">YZ ile kişiselleştirildi</span>` : `<span class="pill rule">Kural tabanlı temel plan</span>`;
-  const why = !ai ? `<div class="check warn">${aiErr === "no_model" ? "Model bağlı değil (Gemini anahtarı girilmedi)." : aiErr === "not_granted" ? "Claude'u kullanma izni verilmedi." : "Model şu an yanıt vermedi (" + esc(aiErr) + ")."} Aşağıdaki plan uygulamanın kural motorundan geldi: güvenli ama haneye daha az özel.</div>` : "";
+  const why = aiErr === "compare" ? `<div class="diff"><span>Karşılaştırma görünümü: YZ katkısı olmadan, yalnız kural motorunun planı.</span><button type="button" class="btn" id="cmpBack">YZ planına dön</button></div>` : !ai ? `<div class="check warn">${aiErr === "no_model" ? "Model bağlı değil (Gemini anahtarı girilmedi)." : aiErr === "not_granted" ? "Claude'u kullanma izni verilmedi." : "Model şu an yanıt vermedi (" + esc(aiErr) + ")."} Aşağıdaki plan uygulamanın kural motorundan geldi: güvenli ama haneye daha az özel.</div>` : "";
   let html = `<div class="card"><div class="pl-head"><h2 style="margin:0">Planınız</h2>${tag}<span class="mode">${esc(h.il)}${h.ilce ? " · " + esc(h.ilce) : ""} · ${h.yetiskin + h.yasli + h.bebek + h.cocuk} kişi</span></div>${why}`;
   if (ai && ai.ozet) html += `<p style="font-size:1.05rem;max-width:72ch">${esc(clean(ai.ozet))}</p>`;
-  html += `<h3>Öncelikli işler</h3><ol class="prio">${pr.map((p) => `<li><b>${esc(p.baslik)}</b><span class="when">${esc(p.ne_zaman)}</span>${p.src === "ai" ? ' <span class="pill ai" style="font-size:10px">YZ</span>' : ""}<small>${esc(p.neden)}</small></li>`).join("")}</ol>`;
+  if (ai) {
+    const cnt = (a) => (Array.isArray(a) ? a.length : 0);
+    const nP = pr.filter((p) => p.src === "ai").length;
+    const nA = h.hazards.reduce((t, k) => t + (ai.afetler && ai.afetler[k] ? ["once", "sirasinda", "sonra"].reduce((u, ph) => u + Math.min(3, cnt(ai.afetler[k][ph])), 0) : 0), 0);
+    const items = [[nP, "öncelik"], [nA, "afet adımı"], [cnt(ai.hane_ozel), "kişiye özel öneri"], [Math.min(6, cnt(ai.canta_ek)), "çanta eki"], [cnt(ai.belirsizlikler), "belirsizlik notu"]].filter(([n]) => n > 0);
+    html += `<div class="diff"><span class="lbl">YZ bu haneye neler ekledi?</span>${items.map(([n, l]) => `<span><b class="n">${n}</b> ${l}</span>`).join("")}<button type="button" class="btn" id="cmpBtn">Yalnız kural planıyla karşılaştır</button></div>`;
+  }
+  html += `<h3>Öncelikli işler</h3><ol class="prio">${pr.map((p) => `<li${p.src === "ai" ? ' class="ai"' : ""}><b>${esc(p.baslik)}</b><span class="when">${esc(p.ne_zaman)}</span>${p.src === "ai" ? ' <span class="pill ai" style="font-size:10px">YZ</span>' : ""}<small>${esc(p.neden)}</small></li>`).join("")}</ol>`;
 
   // afet sekmeleri
   html += `<h3>Afete göre ne yapacaksınız?</h3><div class="tabs" id="tabs">${h.hazards.map((k, i) => `<button type="button" data-k="${k}" style="--hc:${HAZ[k].c}" class="${i ? "" : "on"}">${HAZ[k].ad}</button>`).join("")}</div><div id="tabBody"></div>`;
@@ -516,7 +530,7 @@ function render(h, base, ai, aiErr, val) {
   if (h.engel) fallbackHo.push({ kisi: "Hareket kısıtlı birey", oneri: "Yatak ya da koltuğunu pencereden ve devrilecek eşyadan uzak yere alın; komşularla taşıma planı yapın." });
   if (h.hayvan) fallbackHo.push({ kisi: "Evcil hayvan", oneri: "Taşıma kafesini hazır tutun; toplanma alanına tasmalı götürün." });
   const hoAll = (ho.length ? ho : fallbackHo);
-  if (hoAll.length) html += `<h3>Hanenizdeki kişilere özel</h3><ul>${hoAll.map((x) => `<li><b>${esc(clean(x.kisi))}:</b> ${esc(clean(x.oneri))}</li>`).join("")}</ul>`;
+  if (hoAll.length) html += `<h3>Hanenizdeki kişilere özel</h3><ul>${hoAll.map((x) => `<li><b>${esc(clean(x.kisi))}:</b> ${esc(clean(x.oneri))}${ho.length ? ' <span class="pill ai" style="font-size:10px">YZ</span>' : ""}</li>`).join("")}</ul>`;
 
   const ip = ai && Array.isArray(ai.iletisim_plani) && ai.iletisim_plani.length ? ai.iletisim_plani.filter((x) => !bad(x)).map(clean) : ["İl dışındaki bir yakını herkesin haber vereceği tek kişi olarak belirleyin.", "Evin yakınında bir, mahalle dışında bir buluşma noktası seçin.", "Telefon hatları dolarsa kısa mesaj kullanın; sesli aramayı 112 için bırakın."];
   html += `<h3>Aile iletişim planı</h3><ul>${ip.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
@@ -536,6 +550,8 @@ function render(h, base, ai, aiErr, val) {
   if (ai) html += `<details><summary>Modelin ham çıktısı (şeffaflık için)</summary><div><div class="raw">${esc(JSON.stringify(ai, null, 2))}</div></div></details>`;
   html += `<p class="notice">Bu plan bilgilendirme amaçlıdır, resmî uyarıların yerine geçmez. Acil durumda 112'yi arayın.</p></div>`;
   $("plan").innerHTML = html;
+  if ($("cmpBtn")) $("cmpBtn").onclick = () => render(h, base, null, "compare", null);
+  if ($("cmpBack")) $("cmpBack").onclick = () => render(...lastRender);
 
   const showTab = (k) => {
     document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.k === k));
