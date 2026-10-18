@@ -7,6 +7,8 @@ HazırOl ("Be Ready") is a generative-AI assistant that turns a short descriptio
 It also asks a second question: **if households had followed this kind of guidance, how much of the loss in recent Turkish disasters could have been prevented?** The answer is shown as a transparent, adjustable range rather than a single headline number.
 
 > Built for the Samsung Innovation Campus *Generative AI for the SDGs* hackathon, October 2026.
+>
+> **Team — Group 13:** Fatma Çevik · Ayberk Koç · Hüseyin Aksoy · Adil Yer · Mehmet Tarık Özcan
 
 ## SDG link
 
